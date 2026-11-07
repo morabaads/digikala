@@ -1,0 +1,11 @@
+/.git
+/docs
+/tests
+/vendor
+/composer.json
+/composer.lock
+/phpunit.xml.dist
+/.gitignore
+/.distignore
+/.phpunit.result.cache
+/phpstan.neon.dist

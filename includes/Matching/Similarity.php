@@ -71,6 +71,27 @@ class Similarity {
 	}
 
 	/**
+	 * Light Persian stemming: drop the relational suffix «ی/ای» (فلزی → فلز,
+	 * شیشه‌ای → شیشه) and plural «ها/های».
+	 *
+	 * @param string $folded Folded text.
+	 * @return string
+	 */
+	public static function stem( $folded ) {
+		$out = array();
+		foreach ( explode( ' ', (string) $folded ) as $token ) {
+			if ( in_array( $token, array( 'ای', 'ها', 'های', 'ی' ), true ) ) {
+				continue;
+			}
+			if ( mb_strlen( $token, 'UTF-8' ) > 3 && preg_match( '/^(.+?)(?:ها|های|ی)$/u', $token, $m ) && mb_strlen( $m[1], 'UTF-8' ) >= 2 ) {
+				$token = $m[1];
+			}
+			$out[] = $token;
+		}
+		return implode( ' ', $out );
+	}
+
+	/**
 	 * Token Jaccard similarity.
 	 *
 	 * @param string $a A.
@@ -134,6 +155,10 @@ class Similarity {
 		$cb = self::canon( $b );
 		if ( '' !== $ca && $ca === $cb ) {
 			return 1.0;
+		}
+		$sa = self::stem( $ca );
+		if ( '' !== $sa && $sa === self::stem( $cb ) ) {
+			return 0.95;
 		}
 		return round( 0.55 * self::jaccard( $ca, $cb ) + 0.45 * self::levenshtein_ratio( $ca, $cb ), 4 );
 	}

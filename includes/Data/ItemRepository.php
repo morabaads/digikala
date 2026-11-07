@@ -45,7 +45,7 @@ class ItemRepository {
 	 * @param array|null $row Row.
 	 * @return array|null
 	 */
-	private static function hydrate( $row ) {
+	public static function hydrate( $row ) {
 		if ( ! $row ) {
 			return null;
 		}

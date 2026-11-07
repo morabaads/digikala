@@ -255,8 +255,10 @@ class Client {
 				throw new ApiException( $message, 429, $errors, $wait );
 			}
 
-			// Transient errors → exponential backoff.
-			if ( ( 0 === $code || $code >= 500 ) && $attempt <= self::MAX_RETRIES ) {
+			// Transient errors → exponential backoff. Network failures (e.g. the
+			// host is unreachable from this server) are retried only once so
+			// admin screens do not hang.
+			if ( ( ( 0 === $code && $attempt <= 1 ) || ( $code >= 500 && $attempt <= self::MAX_RETRIES ) ) ) {
 				$this->breaker_failure();
 				call_user_func( $this->sleeper, (int) pow( 2, $attempt ) );
 				continue;

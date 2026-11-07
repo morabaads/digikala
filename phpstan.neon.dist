@@ -1,0 +1,18 @@
+# Static analysis against WordPress / WooCommerce stubs: composer analyse
+includes:
+    - vendor/szepeviktor/phpstan-wordpress/extension.neon
+parameters:
+    level: 3
+    phpVersion: 70400
+    paths:
+        - includes
+        - dk-bridge.php
+        - uninstall.php
+    bootstrapFiles:
+        - tests/phpstan-bootstrap.php
+    scanFiles:
+        - vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php
+        - vendor/php-stubs/woocommerce-stubs/woocommerce-packages-stubs.php
+        - vendor/php-stubs/wp-cli-stubs/wp-cli-stubs.php
+    ignoreErrors:
+        - '#Function as_[a-z_]+ not found#'
