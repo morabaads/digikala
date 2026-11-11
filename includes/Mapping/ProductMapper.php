@@ -44,6 +44,9 @@ class ProductMapper {
 		'division_id'       => '_dkb_division_id',
 		'exclude'           => '_dkb_exclude',
 		'warranty_id'       => '_dkb_warranty_id',
+		'bundle'            => '_dkb_bundle',
+		'production_date'   => '_dkb_production_date',
+		'expiry_date'       => '_dkb_expiry_date',
 	);
 
 	/**
@@ -148,6 +151,9 @@ class ProductMapper {
 		$p->division_id      = (int) self::override( $product, 'division_id' ) ?: null;
 		$p->nature           = (string) self::override( $product, 'nature' );
 		$p->nature_en        = (string) self::override( $product, 'nature_en' );
+		$p->bundle           = trim( (string) self::override( $product, 'bundle' ) );
+		$p->production_date  = (string) self::override( $product, 'production_date' );
+		$p->expiry_date      = (string) self::override( $product, 'expiry_date' );
 
 		// Dimensions.
 		$p->package = self::dimensions( $product );

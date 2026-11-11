@@ -49,6 +49,12 @@ class ProductData {
 
 	/** @var string */
 	public $model = '';
+	/** @var string Bundled item sold in the same box (must appear in the title). */
+	public $bundle = '';
+	/** @var string Production date (Y-m-d) for perishables. */
+	public $production_date = '';
+	/** @var string Expiry date (Y-m-d) for perishables. */
+	public $expiry_date = '';
 	/** @var bool */
 	public $fake = false;
 	/** @var int[] */

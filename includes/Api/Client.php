@@ -150,7 +150,7 @@ class Client {
 		}
 		// Validation / inquiry / AI checks are read-only POSTs, but they create
 		// drafts in some cases (detail/validation) so only list pure reads here.
-		$read_only = array( '/batch/inquiry', '/product-creation/images/ai', '/auth/token', '/auth/refresh-token' );
+		$read_only = array( '/batch/inquiry', '/product-creation/images/ai', '/auth/token', '/auth/refresh-token', '/packages/warehouses/', '/packages/order-fulfilment/variants', '/pricing/promotions/eligible/min-discounts' );
 		foreach ( $read_only as $prefix ) {
 			if ( 0 === strpos( $path, $prefix ) ) {
 				return false;

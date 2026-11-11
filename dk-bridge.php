@@ -3,7 +3,7 @@
  * Plugin Name:       DK Bridge — انتقال ووکامرس به دیجی‌کالا
  * Plugin URI:        https://github.com/morabaads/digikala
  * Description:       انتقال محصولات ووکامرس به پنل فروشندگان دیجی‌کالا از طریق Open API رسمی، اصلاح خودکار محتوا طبق قوانین دیجی‌کالا، و همگام‌سازی دوطرفهٔ موجودی، قیمت و سفارش.
- * Version:           1.0.0
+ * Version:           1.1.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Morabaads
@@ -19,8 +19,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'DKB_VERSION', '1.0.0' );
-define( 'DKB_DB_VERSION', '1.0.0' );
+define( 'DKB_VERSION', '1.1.0' );
+define( 'DKB_DB_VERSION', '1.1.0' );
 define( 'DKB_FILE', __FILE__ );
 define( 'DKB_DIR', plugin_dir_path( __FILE__ ) );
 define( 'DKB_URL', plugin_dir_url( __FILE__ ) );

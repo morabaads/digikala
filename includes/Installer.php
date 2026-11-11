@@ -17,7 +17,7 @@ class Installer {
 	/**
 	 * Table names (without prefix).
 	 */
-	const TABLES = array( 'dkb_items', 'dkb_category_map', 'dkb_attribute_map', 'dkb_orders', 'dkb_logs' );
+	const TABLES = array( 'dkb_items', 'dkb_category_map', 'dkb_attribute_map', 'dkb_orders', 'dkb_logs', 'dkb_variants', 'dkb_price_history' );
 
 	/**
 	 * Activation hook.
@@ -136,6 +136,63 @@ class Installer {
 			KEY level (level),
 			KEY channel (channel),
 			KEY wc_product_id (wc_product_id),
+			KEY created_at (created_at)
+		) $charset;";
+
+		// Snapshot of every Digikala variant of the seller (catalog, inventory, buy box).
+		$sql[] = "CREATE TABLE {$p}dkb_variants (
+			dk_variant_id bigint(20) unsigned NOT NULL,
+			dk_product_id bigint(20) unsigned NULL,
+			wc_product_id bigint(20) unsigned NULL,
+			wc_variation_id bigint(20) unsigned NOT NULL DEFAULT 0,
+			link_method varchar(20) NULL,
+			supplier_code varchar(100) NULL,
+			title varchar(255) NULL,
+			product_title varchar(255) NULL,
+			category_id bigint(20) unsigned NULL,
+			category_title varchar(191) NULL,
+			image varchar(255) NULL,
+			active tinyint(1) NOT NULL DEFAULT 0,
+			archived tinyint(1) NOT NULL DEFAULT 0,
+			moderation_status varchar(40) NULL,
+			price_sale bigint(20) NULL,
+			price_list bigint(20) NULL,
+			buy_box_price bigint(20) NULL,
+			is_buy_box_winner tinyint(1) NOT NULL DEFAULT 0,
+			in_challenge tinyint(1) NOT NULL DEFAULT 0,
+			min_price_limit bigint(20) NULL,
+			seller_stock int(11) NOT NULL DEFAULT 0,
+			warehouse_stock int(11) NOT NULL DEFAULT 0,
+			on_the_way_stock int(11) NOT NULL DEFAULT 0,
+			reservation int(11) NOT NULL DEFAULT 0,
+			selling_stock int(11) NOT NULL DEFAULT 0,
+			max_per_order int(11) NULL,
+			lead_time int(11) NULL,
+			fbs_active tinyint(1) NOT NULL DEFAULT 0,
+			in_promotion tinyint(1) NOT NULL DEFAULT 0,
+			promotion_price bigint(20) NULL,
+			rating decimal(3,2) NULL,
+			fulfilment_cost bigint(20) NULL,
+			dead_stock tinyint(1) NOT NULL DEFAULT 0,
+			synced_at datetime NOT NULL,
+			PRIMARY KEY  (dk_variant_id),
+			KEY dk_product_id (dk_product_id),
+			KEY wc_product_id (wc_product_id),
+			KEY supplier_code (supplier_code),
+			KEY active (active)
+		) $charset;";
+
+		$sql[] = "CREATE TABLE {$p}dkb_price_history (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			dk_variant_id bigint(20) unsigned NOT NULL,
+			old_price bigint(20) NULL,
+			new_price bigint(20) NOT NULL,
+			buy_box_price bigint(20) NULL,
+			strategy varchar(20) NOT NULL,
+			reason varchar(255) NULL,
+			created_at datetime NOT NULL,
+			PRIMARY KEY  (id),
+			KEY dk_variant_id (dk_variant_id),
 			KEY created_at (created_at)
 		) $charset;";
 

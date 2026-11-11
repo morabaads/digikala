@@ -82,6 +82,11 @@ class InventorySync {
 			return;
 		}
 		$this->mark( $product, 'stock' );
+		// Sold out: push now instead of waiting for the 5-minute batch, otherwise Digikala
+		// keeps accepting orders for an item we no longer have (seller FAQ 325).
+		if ( $product->managing_stock() && (int) $product->get_stock_quantity() <= (int) $this->settings->get( 'stock_buffer' ) ) {
+			Queue::push( 'dkb_flush_stock', array( 'urgent' ), 0 );
+		}
 	}
 
 	/**

@@ -116,6 +116,14 @@ class MetaBox {
 		$this->row( 'disadvantages', __( 'نقاط ضعف (هر خط یکی)', 'dk-bridge' ), 'textarea', $get( 'disadvantages' ), '' );
 		$this->row( 'general_mefa_id', __( 'شناسهٔ عمومی کالا', 'dk-bridge' ), 'text', $get( 'general_mefa_id' ), '' );
 		$this->row( 'warranty_id', __( 'شناسهٔ گارانتی', 'dk-bridge' ), 'number', $get( 'warranty_id' ), '' );
+		$this->row( 'bundle', __( 'کالای همراه (باندل)', 'dk-bridge' ), 'text', $get( 'bundle' ), __( 'مثلاً «پاور بانک» — در عنوان «به همراه …» اضافه می‌شود', 'dk-bridge' ) );
+		$this->row( 'production_date', __( 'تاریخ تولید (میلادی)', 'dk-bridge' ), 'date', $get( 'production_date' ), '', 'ltr' );
+		$this->row( 'expiry_date', __( 'تاریخ انقضا (میلادی)', 'dk-bridge' ), 'date', $get( 'expiry_date' ), '', 'ltr' );
+		echo '<tr><th>' . esc_html__( 'قیمت‌گذاری هوشمند', 'dk-bridge' ) . '</th><td><select name="dkb_meta[_dkb_price_strategy]"><option value="">' . esc_html__( 'پیش‌فرض تنظیمات', 'dk-bridge' ) . '</option>';
+		foreach ( \DKBridge\Intelligence\RepricingEngine::STRATEGIES as $key => $label ) {
+			echo '<option value="' . esc_attr( $key ) . '" ' . selected( (string) $product->get_meta( '_dkb_price_strategy' ), $key, false ) . '>' . esc_html( $label ) . '</option>';
+		}
+		echo '</select> ' . esc_html__( 'کف قیمت (ریال):', 'dk-bridge' ) . ' <input type="number" class="small-text" style="width:120px" name="dkb_meta[_dkb_price_floor]" value="' . esc_attr( (string) $product->get_meta( '_dkb_price_floor' ) ) . '"> ' . esc_html__( 'سقف قیمت (ریال):', 'dk-bridge' ) . ' <input type="number" class="small-text" style="width:120px" name="dkb_meta[_dkb_price_ceiling]" value="' . esc_attr( (string) $product->get_meta( '_dkb_price_ceiling' ) ) . '"></td></tr>';
 		echo '<tr><th>' . esc_html__( 'ویژگی‌ها', 'dk-bridge' ) . '</th><td>'
 			. '<label><input type="checkbox" name="dkb_meta[_dkb_fake]" value="yes" ' . checked( 'yes', $get( 'fake' ), false ) . '> ' . esc_html__( 'کالای غیراصل (نشان غیراصل)', 'dk-bridge' ) . '</label><br>'
 			. '<label><input type="checkbox" name="dkb_meta[_dkb_is_iranian]" value="yes" ' . checked( 'yes', $get( 'is_iranian' ), false ) . '> ' . esc_html__( 'تولید ایران', 'dk-bridge' ) . '</label><br>'
@@ -156,7 +164,7 @@ class MetaBox {
 			return;
 		}
 		$raw     = isset( $_POST['dkb_meta'] ) && is_array( $_POST['dkb_meta'] ) ? wp_unslash( $_POST['dkb_meta'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-		$allowed = array_merge( array_values( ProductMapper::META ), array( '_dkb_category_id', '_dkb_category_title' ) );
+		$allowed = array_merge( array_values( ProductMapper::META ), array( '_dkb_category_id', '_dkb_category_title', '_dkb_price_strategy', '_dkb_price_floor', '_dkb_price_ceiling' ) );
 		$checks  = array( '_dkb_fake', '_dkb_is_iranian', '_dkb_exclude' );
 		foreach ( $allowed as $key ) {
 			if ( in_array( $key, array( '_dkb_product_type_ids', '_dkb_division_id' ), true ) ) {

@@ -575,4 +575,516 @@ class Digikala {
 	public function webhook_activation( $active ) {
 		return $this->client->post( '/webhook/subscription/change-activation', array( 'activation' => (bool) $active ) );
 	}
+
+	// --------------------------------------------------------- Variant states.
+
+	/**
+	 * Activate / deactivate one variant.
+	 *
+	 * @param int  $variant_id Variant.
+	 * @param bool $active     Active.
+	 * @return array
+	 */
+	public function set_activation( $variant_id, $active ) {
+		return $this->client->put( '/variants/' . (int) $variant_id . '/activation', array( 'activation' => (bool) $active ) );
+	}
+
+	/**
+	 * Archive / unarchive a variant.
+	 *
+	 * @param int  $variant_id Variant.
+	 * @param bool $archive    Archive.
+	 * @return array
+	 */
+	public function set_archive( $variant_id, $archive ) {
+		return $this->client->put( '/variants/' . (int) $variant_id . '/archive', array( 'archive' => (bool) $archive ) );
+	}
+
+	/**
+	 * n-th rank buy box price.
+	 *
+	 * @param int $variant_id Variant.
+	 * @param int $rank       Rank.
+	 * @return int|null
+	 */
+	public function rank_price( $variant_id, $rank ) {
+		$data = $this->client->get(
+			'/pricing/buybox/price-suggestion/nth-rank-winning-price',
+			array(
+				'product_variant_id' => (int) $variant_id,
+				'target_rank'        => max( 1, (int) $rank ),
+			)
+		);
+		return isset( $data['suggested_price'] ) ? (int) $data['suggested_price'] : null;
+	}
+
+	// --------------------------------------------------------------- Inventory.
+
+	/**
+	 * Inventory list (Digikala warehouses + seller stock).
+	 *
+	 * @param array $search Filters (stock_status, product_filter, warehouse_filter…).
+	 * @param int   $page   Page.
+	 * @param int   $size   Size.
+	 * @return array
+	 */
+	public function inventories( array $search = array(), $page = 1, $size = 100 ) {
+		return $this->client->get(
+			'/inventories',
+			array(
+				'page'   => (int) $page,
+				'size'   => (int) $size,
+				'search' => $search,
+			)
+		);
+	}
+
+	/**
+	 * Serial-level stock age of a variant (dead stock).
+	 *
+	 * @param int $variant_id Variant.
+	 * @return array
+	 */
+	public function inventory_detail( $variant_id ) {
+		return $this->client->get( '/inventories/' . (int) $variant_id );
+	}
+
+	// --------------------------------------------------------------- Logistics.
+
+	/**
+	 * Variants that can be sent to Digikala warehouses (consignment).
+	 *
+	 * @param array $search Filters.
+	 * @param int   $page   Page.
+	 * @return array
+	 */
+	public function consignment_variants( array $search = array(), $page = 1 ) {
+		return $this->client->get(
+			'/variants/packages/consignment',
+			array(
+				'page'   => (int) $page,
+				'size'   => 100,
+				'search' => $search,
+			)
+		);
+	}
+
+	/**
+	 * Warehouses for a delivery type.
+	 *
+	 * @param string $delivery_type digikala|seller|mobile_hub|post.
+	 * @param int    $nature        Shipping nature id.
+	 * @return array
+	 */
+	public function warehouses( $delivery_type = 'digikala', $nature = 0 ) {
+		$query = array( 'delivery_type' => (string) $delivery_type );
+		if ( $nature ) {
+			$query['shipping_nature_id'] = (int) $nature;
+		}
+		return $this->cached( '/packages/warehouses', $query, 6 * HOUR_IN_SECONDS );
+	}
+
+	/**
+	 * Warehouse capacity for a package.
+	 *
+	 * @param int    $warehouse_id  Warehouse.
+	 * @param string $delivery_type Delivery type.
+	 * @param string $date          ISO date.
+	 * @param string $package_type  consignment|order_fulfilment.
+	 * @param int[]  $variants      Variant ids.
+	 * @param int[]  $counts        Counts.
+	 * @return array
+	 */
+	public function warehouse_capacity( $warehouse_id, $delivery_type, $date, $package_type, array $variants, array $counts ) {
+		return $this->client->post(
+			'/packages/warehouses/' . (int) $warehouse_id . '/capacities',
+			array(
+				'delivery_type' => (string) $delivery_type,
+				'date'          => (string) $date,
+				'package_type'  => (string) $package_type,
+				'variants'      => array_values( array_map( 'intval', $variants ) ),
+				'counts'        => array_values( array_map( 'intval', $counts ) ),
+			)
+		);
+	}
+
+	/**
+	 * Create packages.
+	 *
+	 * @param string $type     consignment|order_fulfilment.
+	 * @param array  $packages Packages keyed 1..n: {items:[{variant_id,count}], shipping_date, delivery_type}.
+	 * @return array
+	 */
+	public function create_packages( $type, array $packages ) {
+		return $this->client->post(
+			'/packages',
+			array(
+				'package_type' => (string) $type,
+				'packages'     => (object) $packages,
+			)
+		);
+	}
+
+	/**
+	 * Packages list.
+	 *
+	 * @param array $search Filters.
+	 * @param int   $page   Page.
+	 * @return array
+	 */
+	public function packages( array $search = array(), $page = 1 ) {
+		return $this->client->get(
+			'/packages',
+			array(
+				'page'   => (int) $page,
+				'size'   => 50,
+				'sort'   => 'created_at',
+				'order'  => 'desc',
+				'search' => $search,
+			)
+		);
+	}
+
+	/**
+	 * Delete a package.
+	 *
+	 * @param int $package_id Package.
+	 * @return array
+	 */
+	public function delete_package( $package_id ) {
+		return $this->client->request( 'DELETE', '/packages/' . (int) $package_id );
+	}
+
+	/**
+	 * Order items that need a fulfilment package (commitments).
+	 *
+	 * @param int $commitment_type 1 today, 2 tomorrow, 3 all.
+	 * @return array
+	 */
+	public function fulfilment_variants( $commitment_type = 3 ) {
+		return $this->client->get(
+			'/packages/order-fulfilment/variants',
+			array(
+				'size'                    => 100,
+				'[order_commitment_type]' => (int) $commitment_type,
+			)
+		);
+	}
+
+	/**
+	 * Commitments (what must be delivered to warehouses, with penalties).
+	 *
+	 * @param array $search Filters.
+	 * @param int   $page   Page.
+	 * @return array
+	 */
+	public function commitments( array $search = array(), $page = 1 ) {
+		return $this->client->get(
+			'/commitments',
+			array(
+				'page'   => (int) $page,
+				'size'   => 100,
+				'search' => $search,
+			)
+		);
+	}
+
+	/**
+	 * Commitments metadata (summary, penalties, package deadlines).
+	 *
+	 * @return array
+	 */
+	public function commitments_meta() {
+		return $this->cached( '/commitments/metadata', array(), 30 * MINUTE_IN_SECONDS );
+	}
+
+	/**
+	 * Ship-by-seller orders.
+	 *
+	 * @param array $search Filters (status, search_term, critical_only…).
+	 * @param int   $page   Page.
+	 * @return array
+	 */
+	public function sbs_orders( array $search = array(), $page = 1 ) {
+		return $this->client->get(
+			'/ship-by-seller-orders',
+			array(
+				'page'   => (int) $page,
+				'size'   => 50,
+				'sort'   => 'promise_date',
+				'order'  => 'asc',
+				'search' => $search,
+			)
+		);
+	}
+
+	/**
+	 * Update an SBS shipment status.
+	 *
+	 * @param int    $shipment_id Shipment.
+	 * @param string $status      processing|processed|full_delivered_to_customer.
+	 * @param string $code        Customer verification code (for delivered).
+	 * @return array
+	 */
+	public function sbs_update_status( $shipment_id, $status, $code = '' ) {
+		$body = array(
+			'order_shipment_id' => (int) $shipment_id,
+			'new_status'        => (string) $status,
+		);
+		if ( '' !== (string) $code ) {
+			$body['verification_code'] = (int) $code;
+		}
+		return $this->client->put( '/ship-by-seller-orders/update-status', $body );
+	}
+
+	/**
+	 * Add a post tracking code to an SBS shipment.
+	 *
+	 * @param int    $shipment_id Shipment.
+	 * @param string $code        Tracking code.
+	 * @param string $infra       post|others.
+	 * @param string $service     Courier name for "others".
+	 * @return array
+	 */
+	public function sbs_tracking_code( $shipment_id, $code, $infra = 'post', $service = '' ) {
+		$body = array(
+			'order_shipment_id' => (int) $shipment_id,
+			'tracking_codes'    => array( array( 'tracking_code' => (string) $code ) ),
+			'infra_type'        => (string) $infra,
+		);
+		if ( '' !== $service ) {
+			$body['service_name'] = (string) $service;
+		}
+		return $this->client->post( '/ship-by-seller-orders/tracking-code', $body );
+	}
+
+	// -------------------------------------------------------------- Promotions.
+
+	/**
+	 * Promotions the seller can join.
+	 *
+	 * @param array $search Filters (nature, excludeJoined…).
+	 * @return array
+	 */
+	public function eligible_promotions( array $search = array() ) {
+		return $this->cached(
+			'/pricing/promotions/eligible',
+			array(
+				'size'   => 50,
+				'sort'   => 'join_deadline',
+				'order'  => 'asc',
+				'search' => $search,
+			),
+			15 * MINUTE_IN_SECONDS
+		);
+	}
+
+	/**
+	 * Promotions the seller registered in.
+	 *
+	 * @param array $search Filters.
+	 * @return array
+	 */
+	public function my_promotions( array $search = array() ) {
+		return $this->client->get(
+			'/pricing/promotions',
+			array(
+				'size'   => 50,
+				'sort'   => 'promotion_id',
+				'order'  => 'desc',
+				'search' => $search,
+			)
+		);
+	}
+
+	/**
+	 * Promotion details.
+	 *
+	 * @param int $promotion_id Promotion.
+	 * @return array
+	 */
+	public function promotion( $promotion_id ) {
+		return $this->cached( '/pricing/promotions/' . (int) $promotion_id, array(), 15 * MINUTE_IN_SECONDS );
+	}
+
+	/**
+	 * Variants eligible for a promotion.
+	 *
+	 * @param int   $promotion_id Promotion.
+	 * @param int   $page         Page.
+	 * @param array $search       Filters.
+	 * @return array
+	 */
+	public function promotion_eligible_variants( $promotion_id, $page = 1, array $search = array() ) {
+		return $this->client->get(
+			'/pricing/promotions/' . (int) $promotion_id . '/variants/eligible_v2',
+			array(
+				'page'   => (int) $page,
+				'size'   => 100,
+				'search' => $search,
+			)
+		);
+	}
+
+	/**
+	 * Variants joined to a promotion.
+	 *
+	 * @param int $promotion_id Promotion.
+	 * @param int $page         Page.
+	 * @return array
+	 */
+	public function promotion_variants( $promotion_id, $page = 1 ) {
+		return $this->client->get(
+			'/pricing/promotions/' . (int) $promotion_id . '/variants',
+			array(
+				'page' => (int) $page,
+				'size' => 100,
+			)
+		);
+	}
+
+	/**
+	 * Join variants to a promotion.
+	 *
+	 * @param int   $promotion_id Promotion.
+	 * @param array $rows         [{variant_id, promotion_price, order_limit, price_limit}].
+	 * @return array
+	 */
+	public function join_promotion( $promotion_id, array $rows ) {
+		return $this->client->post( '/pricing/promotions/' . (int) $promotion_id . '/variants', array( 'data' => array_values( $rows ) ) );
+	}
+
+	/**
+	 * Remove promotion variants.
+	 *
+	 * @param int   $promotion_id Promotion.
+	 * @param int[] $ids          Promotion variant ids.
+	 * @return array
+	 */
+	public function leave_promotion( $promotion_id, array $ids ) {
+		return $this->client->request( 'DELETE', '/pricing/promotions/' . (int) $promotion_id . '/variants', array( 'json' => array( 'ids' => array_values( array_map( 'intval', $ids ) ) ) ) );
+	}
+
+	/**
+	 * Rejection reasons of a promotion variant.
+	 *
+	 * @param int $promotion_variant_id Id.
+	 * @return array
+	 */
+	public function promotion_rejection( $promotion_variant_id ) {
+		return $this->client->get( '/pricing/promotions/variants/rejection-reason/' . (int) $promotion_variant_id );
+	}
+
+	/**
+	 * Variants eligible for smart (periodic) discounts.
+	 *
+	 * @param int $page Page.
+	 * @return array
+	 */
+	public function smart_discount_eligible( $page = 1 ) {
+		return $this->client->get(
+			'/pricing/smart-discount/variants/eligible',
+			array(
+				'page' => (int) $page,
+				'size' => 100,
+			)
+		);
+	}
+
+	/**
+	 * Variants with smart discounts.
+	 *
+	 * @param string $status active|inactive.
+	 * @return array
+	 */
+	public function smart_discounts( $status = 'active' ) {
+		return $this->client->get( '/pricing/smart-discount/variants/' . ( 'inactive' === $status ? 'inactive' : 'active' ), array( 'size' => 100 ) );
+	}
+
+	/**
+	 * Create smart discounts.
+	 *
+	 * @param array $rows [{variantId, promotionPrice, limit, orderLimit, startAt, endAt}].
+	 * @return array
+	 */
+	public function create_smart_discounts( array $rows ) {
+		return $this->client->post( '/pricing/smart-discount/variants/batch', array( 'data' => array_values( $rows ) ) );
+	}
+
+	/**
+	 * Delete smart discounts.
+	 *
+	 * @param int[] $variant_ids Variants.
+	 * @return array
+	 */
+	public function delete_smart_discounts( array $variant_ids ) {
+		return $this->client->request( 'DELETE', '/pricing/smart-discount/variants', array( 'json' => array( 'variant_ids' => array_values( array_map( 'intval', $variant_ids ) ) ) ) );
+	}
+
+	// --------------------------------------------------------------- Analytics.
+
+	/**
+	 * Insight overview.
+	 *
+	 * @param string $range last_7_days|last_14_days|last_30_days.
+	 * @return array
+	 */
+	public function insight_overview( $range = 'last_30_days' ) {
+		return $this->cached( '/insight/overview', array( 'range' => (string) $range ), HOUR_IN_SECONDS );
+	}
+
+	/**
+	 * Sales trend.
+	 *
+	 * @param string $range Range.
+	 * @return array
+	 */
+	public function insight_trend( $range = 'last_30_days' ) {
+		return $this->cached( '/insight/trend-sales-reports', array( 'range' => (string) $range ), HOUR_IN_SECONDS );
+	}
+
+	/**
+	 * Per product sales report.
+	 *
+	 * @param string $range Range.
+	 * @return array
+	 */
+	public function insight_sales( $range = 'last_30_days' ) {
+		return $this->cached( '/insight/sales-reports', array( 'range' => (string) $range ), HOUR_IN_SECONDS );
+	}
+
+	/**
+	 * Out of stock products with missed revenue.
+	 *
+	 * @return array
+	 */
+	public function insight_top_deactivated() {
+		return $this->cached( '/insight/top-deactivated', array(), HOUR_IN_SECONDS );
+	}
+
+	/**
+	 * Seller performance KPIs.
+	 *
+	 * @return array
+	 */
+	public function performance() {
+		return $this->cached( '/profile/performance', array(), HOUR_IN_SECONDS );
+	}
+
+	/**
+	 * Commission table.
+	 *
+	 * @param array $search Filters.
+	 * @return array
+	 */
+	public function commissions( array $search = array( 'my_commissions' => true ) ) {
+		return $this->cached(
+			'/commissions/',
+			array(
+				'size'   => 100,
+				'search' => $search,
+			),
+			DAY_IN_SECONDS
+		);
+	}
 }

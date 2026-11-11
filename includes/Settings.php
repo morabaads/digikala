@@ -99,6 +99,40 @@ class Settings {
 			'webhook_secret'            => '',
 			'webhook_events'            => array( 'product_moderation', 'product_variant_status_change', 'order_processed', 'order_item_cancellation', 'order_return' ),
 
+			// Catalog management.
+			'catalog_sync'              => true,
+			'catalog_auto_link'         => true,
+			'deactivate_unpublished'    => true,
+
+			// Inventory management.
+			'velocity_days'             => 30,
+			'low_stock_days'            => 7,
+			'alert_email'               => '',
+			'auto_deactivate_oos'       => false,
+
+			// Smart logistics.
+			'cover_days'                => 21,
+			'safety_days'               => 4,
+			'inbound_days'              => 3,
+			'replenish_min'             => 2,
+
+			// Smart pricing (repricer).
+			'repricer_enabled'          => false,
+			'repricer_strategy'         => 'fixed', // fixed | buybox | rank | undercut.
+			'repricer_rank'             => 2,
+			'repricer_step'             => 10000, // Rial.
+			'repricer_min_change'       => 10000, // Rial.
+			'repricer_max_markup'       => 40.0, // Percent over base price (ceiling).
+			'repricer_raise_when_alone' => true,
+			'repricer_max_weekly_change' => 10.0, // Percent; protects promotion eligibility.
+
+			// Promotions.
+			'promo_auto_join'           => false,
+			'promo_max_discount'        => 15.0,
+			'promo_natures'             => array( 'incredible_offer', 'deal_of_the_day', 'mega_promotion' ),
+			'promo_stock_share'         => 50, // Percent of stock offered in a promotion.
+			'promo_order_limit'         => 2,
+
 			// Notifications & advanced.
 			'notify_email'              => '',
 			'log_level'                 => 'info', // debug | info | warning | error.

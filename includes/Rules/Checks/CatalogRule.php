@@ -52,8 +52,10 @@ class CatalogRule extends Rule {
 		if ( $p->fake && false === $p->allow_fake ) {
 			$issues[] = $this->issue( 'fake.not_allowed', Issue::ERROR, 'originality', 'در این گروه کالایی، درج کالای غیراصل مجاز نیست.' );
 		}
-		if ( $p->fake && $p->brand_misc ) {
-			$issues[] = $this->issue( 'fake.misc_brand', Issue::WARNING, 'originality', 'کالایی که هیچ برندی رویش نیست نباید «غیراصل» علامت بخورد؛ آن را با برند «متفرقه» و اصل درج کنید.', true );
+		if ( $p->fake && '' === trim( $p->brand_source ) ) {
+			// Digikala guideline: an item that carries no brand at all is listed as original + «متفرقه»;
+			// the fake badge is for copies of another brand (which then also use «متفرقه»).
+			$issues[] = $this->issue( 'fake.no_brand', Issue::INFO, 'originality', 'اگر روی کالا هیچ برندی نیست، نشان غیراصل لازم نیست؛ با برند «متفرقه» و به‌عنوان کالای اصل درج کنید.' );
 		}
 
 		// Model.
@@ -94,10 +96,6 @@ class CatalogRule extends Rule {
 		$changes = array();
 		foreach ( $issues as $issue ) {
 			switch ( $issue->code ) {
-				case 'fake.misc_brand':
-					$p->fake   = false;
-					$changes[] = 'کالای بدون برند به «اصل + متفرقه» تغییر کرد.';
-					break;
 				case 'model.length':
 					$p->model  = Normalizer::truncate_words( $p->model, 60 );
 					$changes[] = 'کوتاه‌سازی مدل';

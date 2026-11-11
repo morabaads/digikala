@@ -618,6 +618,21 @@ class Publisher {
 			if ( ! empty( $seller['referencePrice'] ) ) {
 				$extra['reference_price'] = (int) $seller['referencePrice'];
 			}
+			// Remember the real commission for the repricer and promotion planner.
+			$this->items->merge_context(
+				$item,
+				array_filter(
+					array(
+						'commission'  => isset( $extra['commission'] ) ? $extra['commission'] : null,
+						'price_type'  => isset( $extra['price_type'] ) ? $extra['price_type'] : null,
+						'fulfil_cost' => isset( $seller['fulfillmentAndDeliveryCost']['minimum_cost'] ) ? (int) $seller['fulfillmentAndDeliveryCost']['minimum_cost'] : null,
+					),
+					static function ( $v ) {
+						return null !== $v;
+					}
+				)
+			);
+			$item = $this->items->get( $product->get_id() );
 		} catch ( ApiException $e ) {
 			$this->logger->debug( 'variants', 'be-seller failed: ' . $e->getMessage(), array(), $product->get_id() );
 		}

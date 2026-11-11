@@ -55,6 +55,7 @@ class RuleEngine {
 		'photo'        => 'تصاویر',
 		'dimensions'   => 'ابعاد و وزن',
 		'commerce'     => 'قیمت و موجودی',
+		'compliance'   => 'مدارک و قوانین',
 	);
 
 	/**
@@ -89,6 +90,7 @@ class RuleEngine {
 			new Checks\DimensionRule( $config ),
 			new Checks\ImageRule( $config ),
 			new Checks\PriceStockRule( $config ),
+			new Checks\ComplianceRule( $config ),
 		);
 		if ( function_exists( 'apply_filters' ) ) {
 			/**
