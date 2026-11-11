@@ -248,6 +248,77 @@ class Command {
 	}
 
 	/**
+	 * Pull all Digikala variants into the local catalog and auto-link them.
+	 *
+	 * @subcommand catalog-sync
+	 * @param array $args  Args.
+	 * @param array $assoc Assoc.
+	 */
+	public function catalog_sync( $args, $assoc ) {
+		$res = $this->plugin->catalog()->sync();
+		\WP_CLI::success( sprintf( '%d variant(s) synced, %d newly linked.', $res['synced'], $res['linked'] ) );
+	}
+
+	/**
+	 * Run the smart repricer.
+	 *
+	 * [--dry-run]
+	 * : Show decisions without sending prices.
+	 *
+	 * @param array $args  Args.
+	 * @param array $assoc Assoc.
+	 */
+	public function reprice( $args, $assoc ) {
+		$res  = $this->plugin->repricer()->run( empty( $assoc['dry-run'] ) );
+		$rows = array();
+		foreach ( $res['decisions'] as $d ) {
+			$rows[] = array(
+				'variant' => $d['variant_id'],
+				'current' => $d['current'],
+				'buy_box' => $d['buy_box'],
+				'new'     => $d['price'],
+				'action'  => $d['action'],
+				'reason'  => $d['reason'],
+			);
+		}
+		if ( $rows ) {
+			\WP_CLI\Utils\format_items( 'table', $rows, array( 'variant', 'current', 'buy_box', 'new', 'action', 'reason' ) );
+		}
+		\WP_CLI::success( sprintf( '%d checked, %d updated.', $res['checked'], $res['updated'] ) );
+	}
+
+	/**
+	 * Join profitable variants to eligible promotions now.
+	 *
+	 * @subcommand promotions-auto
+	 * @param array $args  Args.
+	 * @param array $assoc Assoc.
+	 */
+	public function promotions_auto( $args, $assoc ) {
+		$res = $this->plugin->promotions()->auto_join();
+		\WP_CLI::success( sprintf( '%d variant(s) joined %d promotion(s).', $res['joined'], $res['promotions'] ) );
+	}
+
+	/**
+	 * Print today's assistant task list.
+	 *
+	 * @param array $args  Args.
+	 * @param array $assoc Assoc.
+	 */
+	public function today( $args, $assoc ) {
+		$rows = array();
+		foreach ( $this->plugin->assistant()->tasks( true ) as $t ) {
+			$rows[] = array(
+				'priority' => $t['priority'],
+				'area'     => $t['area'],
+				'task'     => $t['title'],
+				'count'    => $t['count'],
+			);
+		}
+		\WP_CLI\Utils\format_items( 'table', $rows, array( 'priority', 'area', 'task', 'count' ) );
+	}
+
+	/**
 	 * Resolve product ids from args.
 	 *
 	 * @param array $args  Args.

@@ -11,6 +11,7 @@ namespace DKBridge\Modules;
 use DKBridge\Api\ApiException;
 use DKBridge\Api\Digikala;
 use DKBridge\Data\VariantRepository;
+use DKBridge\Intelligence\LogisticsRules;
 use DKBridge\Intelligence\StockPlanner;
 use DKBridge\Mapping\ProductMapper;
 use DKBridge\Settings;
@@ -116,7 +117,12 @@ class LogisticsService {
 				'allowed'    => isset( $r['allowed_count_consignment'] ) ? (int) $r['allowed_count_consignment'] : null,
 				'available'  => $available,
 				'velocity'   => $velocity,
+				'sold_30'    => isset( $sales[ $id ] ) ? array_sum( $sales[ $id ] ) : 0,
 			) + $suggest;
+			if ( isset( $r['allowed_count_consignment'] ) && 0 === (int) $r['allowed_count_consignment'] ) {
+				$depot                           = LogisticsRules::depot_allowance( $plan[ count( $plan ) - 1 ]['sold_30'] );
+				$plan[ count( $plan ) - 1 ]['reason'] = $depot['reason'];
+			}
 		}
 		$rank = array(
 			'critical' => 0,
@@ -161,6 +167,10 @@ class LogisticsService {
 		if ( ! $ts || $ts < time() ) {
 			throw new \InvalidArgumentException( __( 'تاریخ تحویل باید در آینده باشد.', 'dk-bridge' ) );
 		}
+		$expired = $this->shelf_life_problems( $clean, (string) $date );
+		if ( $expired ) {
+			throw new \InvalidArgumentException( __( 'این کالاها شرط ماندگاری انبار را ندارند (دو سوم عمر کالا یا ۶ ماه اعتبار): ', 'dk-bridge' ) . implode( '، ', $expired ) );
+		}
 		$res = $this->api->create_packages(
 			'order_fulfilment' === $type ? 'order_fulfilment' : 'consignment',
 			array(
@@ -173,6 +183,32 @@ class LogisticsService {
 		);
 		$this->logger->info( 'logistics', sprintf( 'بستهٔ %s با %d قلم کالا ساخته شد.', $type, count( $clean ) ), array( 'response' => $res ) );
 		return $res;
+	}
+
+	/**
+	 * Items whose shelf life is too short for warehouse delivery on the given date (seller FAQ 510).
+	 *
+	 * @param array  $items [{variant_id, count}].
+	 * @param string $date  Delivery date.
+	 * @return string[] Problem descriptions.
+	 */
+	public function shelf_life_problems( array $items, $date ) {
+		$out = array();
+		foreach ( $items as $row ) {
+			$snap = $this->variants->get( (int) $row['variant_id'] );
+			if ( ! $snap || ! $snap['wc_product_id'] ) {
+				continue;
+			}
+			$expiry = (string) get_post_meta( (int) $snap['wc_product_id'], '_dkb_expiry_date', true );
+			if ( '' === $expiry ) {
+				continue;
+			}
+			$check = LogisticsRules::shelf_life( (string) get_post_meta( (int) $snap['wc_product_id'], '_dkb_production_date', true ), $expiry, $date );
+			if ( ! $check['ok'] ) {
+				$out[] = sprintf( '%s (آخرین تاریخ تحویل مجاز: %s)', $snap['title'] ? $snap['title'] : $row['variant_id'], $check['last_delivery'] );
+			}
+		}
+		return $out;
 	}
 
 	/**

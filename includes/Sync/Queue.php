@@ -25,6 +25,10 @@ class Queue {
 		'dkb_poll_moderation' => 1800,
 		'dkb_pull_orders'     => 300,
 		'dkb_check_batches'   => 600,
+		'dkb_catalog_sync'    => 3600,
+		'dkb_reprice'         => 1800,
+		'dkb_promotions_auto' => 21600,
+		'dkb_inventory_alerts' => 21600,
 		'dkb_reconcile'       => DAY_IN_SECONDS,
 		'dkb_cleanup'         => DAY_IN_SECONDS,
 	);
@@ -69,7 +73,7 @@ class Queue {
 	 * @return array
 	 */
 	public static function cron_schedules( $schedules ) {
-		foreach ( array( 300, 600, 900, 1800 ) as $seconds ) {
+		foreach ( array( 300, 600, 900, 1800, 3600, 21600 ) as $seconds ) {
 			$schedules[ 'dkb_' . $seconds ] = array(
 				'interval' => $seconds,
 				/* translators: %d: minutes */

@@ -224,6 +224,9 @@ class InventorySync {
 					if ( ! $product || 'yes' === get_post_meta( $row['wc_product_id'], '_dkb_exclude', true ) ) {
 						continue;
 					}
+					if ( 'fixed' !== \DKBridge\Modules\RepricerService::strategy_for( $this->settings, (int) $row['wc_product_id'] ) ) {
+						continue; // Managed by the smart repricer.
+					}
 					$extra = $this->boundary_options( (int) $row['dk_variant_id'] );
 					$calc  = $this->mapper->price( $product, $extra );
 					if ( $calc['errors'] || $calc['price'] <= 0 ) {

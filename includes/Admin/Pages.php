@@ -262,6 +262,7 @@ class Pages {
 			'fulfilment' => __( 'ارسال و گارانتی', 'dk-bridge' ),
 			'content'    => __( 'قوانین محتوا', 'dk-bridge' ),
 			'images'     => __( 'تصاویر', 'dk-bridge' ),
+			'smart'      => __( 'ماژول‌های هوشمند', 'dk-bridge' ),
 			'webhook'    => __( 'وب‌هوک', 'dk-bridge' ),
 			'advanced'   => __( 'پیشرفته', 'dk-bridge' ),
 		);
@@ -429,6 +430,43 @@ class Pages {
 				$f( 'img_max_bytes', __( 'حداکثر حجم (بایت)', 'dk-bridge' ), 'number' );
 				$f( 'img_max_count', __( 'حداکثر تعداد تصاویر', 'dk-bridge' ), 'number' );
 				$f( 'use_ai_check', __( 'بررسی هوشمند دیجی‌کالا', 'dk-bridge' ), 'checkbox', array( 'label' => __( 'هر تصویر پس از آپلود با هوش مصنوعی دیجی‌کالا بررسی و توصیه‌ها ذخیره شوند.', 'dk-bridge' ) ) );
+				break;
+
+			case 'smart':
+				$rows .= '<tr><th colspan="2"><h3>' . esc_html__( 'مدیریت کالا', 'dk-bridge' ) . '</h3></th></tr>';
+				$f( 'catalog_sync', __( 'همگام‌سازی کاتالوگ', 'dk-bridge' ), 'checkbox', array( 'label' => __( 'هر ساعت همهٔ تنوع‌های دیجی‌کالا خوانده شوند.', 'dk-bridge' ) ) );
+				$f( 'catalog_auto_link', __( 'اتصال خودکار', 'dk-bridge' ), 'checkbox', array( 'label' => __( 'تنوع‌ها با SKU یا کد تأمین‌کننده به محصولات ووکامرس وصل شوند.', 'dk-bridge' ) ) );
+				$f( 'deactivate_unpublished', __( 'هماهنگی وضعیت', 'dk-bridge' ), 'checkbox', array( 'label' => __( 'اگر محصول در ووکامرس پیش‌نویس یا حذف شد، تنوع دیجی‌کالا غیرفعال و با انتشار دوباره فعال شود.', 'dk-bridge' ) ) );
+				$rows .= '<tr><th colspan="2"><h3>' . esc_html__( 'مدیریت موجودی', 'dk-bridge' ) . '</h3></th></tr>';
+				$f( 'velocity_days', __( 'بازهٔ محاسبهٔ سرعت فروش (روز)', 'dk-bridge' ), 'number' );
+				$f( 'low_stock_days', __( 'آستانهٔ «رو به اتمام» (روز پوشش)', 'dk-bridge' ), 'number' );
+				$f( 'alert_email', __( 'ایمیل هشدار موجودی', 'dk-bridge' ), 'email' );
+				$f( 'auto_deactivate_oos', __( 'غیرفعال‌سازی ناموجودها', 'dk-bridge' ), 'checkbox', array( 'label' => __( 'تنوع فعالی که در سایت موجودی ندارد خودکار غیرفعال شود.', 'dk-bridge' ) ) );
+				$rows .= '<tr><th colspan="2"><h3>' . esc_html__( 'لجستیک هوشمند', 'dk-bridge' ) . '</h3></th></tr>';
+				$f( 'cover_days', __( 'پوشش هدف انبار (روز)', 'dk-bridge' ), 'number' );
+				$f( 'safety_days', __( 'ذخیرهٔ اطمینان (روز)', 'dk-bridge' ), 'number' );
+				$f( 'inbound_days', __( 'زمان رسیدن محموله به انبار (روز)', 'dk-bridge' ), 'number' );
+				$f( 'replenish_min', __( 'حداقل تعداد ارسال', 'dk-bridge' ), 'number' );
+				$rows .= '<tr><th colspan="2"><h3>' . esc_html__( 'قیمت‌گذاری هوشمند', 'dk-bridge' ) . '</h3></th></tr>';
+				$f( 'repricer_enabled', __( 'فعال‌سازی', 'dk-bridge' ), 'checkbox', array( 'label' => __( 'هر ۳۰ دقیقه قیمت تنوع‌های متصل بازبینی شود.', 'dk-bridge' ) ) );
+				$f( 'repricer_strategy', __( 'راهبرد پیش‌فرض', 'dk-bridge' ), 'select', array( 'options' => \DKBridge\Intelligence\RepricingEngine::STRATEGIES ) );
+				$f( 'repricer_rank', __( 'رتبهٔ هدف (راهبرد رتبه)', 'dk-bridge' ), 'number' );
+				$f( 'repricer_step', __( 'گام ارزان‌تر شدن (ریال)', 'dk-bridge' ), 'number' );
+				$f( 'repricer_min_change', __( 'حداقل تغییر قابل اعمال (ریال)', 'dk-bridge' ), 'number' );
+				$f( 'repricer_max_markup', __( 'سقف قیمت (٪ بالاتر از قیمت پایه)', 'dk-bridge' ), 'number' );
+				$f( 'repricer_max_weekly_change', __( 'حداکثر نوسان ۷ روزه (٪)', 'dk-bridge' ), 'number', array( 'attrs' => array( 'step' => '0.5' ), 'help' => __( 'نوسان زیاد قیمت مانع ورود به پیشنهاد شگفت‌انگیز می‌شود و افزایش قیمت پیش از تخفیف «تخفیف کاذب» است.', 'dk-bridge' ) ) );
+				$f( 'repricer_raise_when_alone', __( 'افزایش قیمت بدون رقیب', 'dk-bridge' ), 'checkbox', array( 'label' => __( 'اگر رقیبی نیست، قیمت تا سقف بالا برود.', 'dk-bridge' ) ) );
+				$rows .= '<tr><th colspan="2"><h3>' . esc_html__( 'پروموشن‌ها', 'dk-bridge' ) . '</h3></th></tr>';
+				$f( 'promo_auto_join', __( 'پیوستن خودکار', 'dk-bridge' ), 'checkbox', array( 'label' => __( 'هر ۶ ساعت به پروموشن‌های جدید، فقط با کالاهای متصل و سودآور، بپیوندد.', 'dk-bridge' ) ) );
+				$f( 'promo_max_discount', __( 'حداکثر تخفیف مجاز (٪)', 'dk-bridge' ), 'number' );
+				$f( 'promo_stock_share', __( 'سهم موجودی در پروموشن (٪)', 'dk-bridge' ), 'number' );
+				$f( 'promo_order_limit', __( 'حداکثر تعداد در سبد', 'dk-bridge' ), 'number' );
+				$natures = (array) $s->get( 'promo_natures' );
+				$boxes   = '';
+				foreach ( \DKBridge\Intelligence\PromotionPlanner::NATURES as $key => $label ) {
+					$boxes .= '<label class="dkb-inline"><input type="checkbox" name="dkb[promo_natures][]" value="' . esc_attr( $key ) . '" ' . checked( in_array( $key, $natures, true ), true, false ) . '> ' . esc_html( $label ) . '</label> ';
+				}
+				$rows .= '<tr><th>' . esc_html__( 'انواع پروموشن', 'dk-bridge' ) . '</th><td>' . $boxes . '</td></tr>';
 				break;
 
 			case 'webhook':

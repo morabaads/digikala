@@ -512,4 +512,238 @@
 			e.target.classList.add( 'dkb-copied' );
 		}
 	} );
+
+	// ------------------------------------------------- Module screens (generic).
+	function money( rial ) {
+		if ( rial === null || rial === undefined || rial === '' ) {
+			return '—';
+		}
+		return Math.round( Number( rial ) / 10 ).toLocaleString( 'fa-IR' ) + ' تومان';
+	}
+
+	function setPath( obj, path, value ) {
+		var parts = path.split( '.' );
+		var o = obj;
+		for ( var i = 0; i < parts.length - 1; i++ ) {
+			o[ parts[ i ] ] = o[ parts[ i ] ] || {};
+			o = o[ parts[ i ] ];
+		}
+		o[ parts[ parts.length - 1 ] ] = value;
+	}
+
+	function collectFields( container, body ) {
+		if ( ! container ) {
+			return body;
+		}
+		Array.prototype.forEach.call( container.querySelectorAll( '[data-field]' ), function ( input ) {
+			var key = input.getAttribute( 'data-field' );
+			var val = input.value;
+			if ( '' === val ) {
+				return;
+			}
+			if ( 'ids' === key ) {
+				val = val.split( /[\s,،]+/ ).filter( Boolean );
+			}
+			setPath( body, key, val );
+		} );
+		return body;
+	}
+
+	var modalRenderers = {
+		json: function ( r ) {
+			return '<pre dir="ltr" class="dkb-json">' + esc( JSON.stringify( r, null, 2 ) ) + '</pre>';
+		},
+		score: function ( r ) {
+			var rows = Object.keys( r.sections || {} ).map( function ( k ) {
+				var s = r.sections[ k ];
+				var weak = s.current < s.max;
+				return '<tr><td>' + esc( k ) + '</td><td class="' + ( weak ? 'dkb-bad' : 'dkb-good' ) + '">' + esc( s.current ) + ' / ' + esc( s.max ) + '</td></tr>';
+			} ).join( '' );
+			return '<h2>امتیاز محتوای دیجی‌کالا: ' + ring( r.percent ) + '</h2><table class="widefat striped">' + rows + '</table>';
+		},
+		decision: function ( d ) {
+			return '<h2>پیشنهاد قیمت</h2><table class="widefat striped"><tbody>' +
+				'<tr><td>راهبرد</td><td>' + esc( d.strategy ) + '</td></tr>' +
+				'<tr><td>قیمت فعلی</td><td>' + money( d.current ) + '</td></tr>' +
+				'<tr><td>برندهٔ بای‌باکس</td><td>' + ( d.is_winner ? 'شما' : money( d.buy_box ) ) + '</td></tr>' +
+				'<tr><td>کف سود / سقف</td><td>' + money( d.floor ) + ' / ' + money( d.ceiling ) + '</td></tr>' +
+				'<tr><td><strong>قیمت پیشنهادی</strong></td><td><strong>' + money( d.price ) + '</strong> (' + ( 'update' === d.action ? 'تغییر' : 'بدون تغییر' ) + ')</td></tr>' +
+				'<tr><td>دلیل</td><td>' + esc( d.reason ) + '</td></tr></tbody></table>';
+		},
+		decisions: function ( r ) {
+			var rows = ( r.decisions || [] ).map( function ( d ) {
+				return '<tr><td>DKPC-' + esc( d.variant_id ) + '</td><td>' + money( d.current ) + '</td><td>' + money( d.buy_box ) + '</td><td><strong>' + money( d.price ) + '</strong></td><td>' + ( 'update' === d.action ? '✓' : '—' ) + '</td><td>' + esc( d.reason ) + '</td></tr>';
+			} ).join( '' );
+			return '<h2>بررسی ' + esc( r.checked ) + ' تنوع، ' + esc( r.updated ) + ' تغییر اعمال شد</h2><table class="widefat striped"><thead><tr><th>تنوع</th><th>فعلی</th><th>بای‌باکس</th><th>جدید</th><th>تغییر</th><th>دلیل</th></tr></thead><tbody>' + ( rows || '<tr><td colspan="6">موردی نیست (قیمت‌گذاری هوشمند باید فعال و راهبرد غیر از «ثابت» باشد).</td></tr>' ) + '</tbody></table>';
+		},
+		history: function ( rows ) {
+			return '<h2>تاریخچهٔ قیمت</h2><table class="widefat striped"><thead><tr><th>زمان</th><th>قبلی</th><th>جدید</th><th>بای‌باکس</th><th>دلیل</th></tr></thead><tbody>' + ( rows || [] ).map( function ( h ) {
+				return '<tr><td>' + esc( h.created_at ) + '</td><td>' + money( h.old_price ) + '</td><td>' + money( h.new_price ) + '</td><td>' + money( h.buy_box_price ) + '</td><td>' + esc( h.reason ) + '</td></tr>';
+			} ).join( '' ) + '</tbody></table>';
+		}
+	};
+
+	document.addEventListener( 'click', function ( e ) {
+		var btn = e.target.closest( '[data-dkb-call]' );
+		if ( ! btn ) {
+			return;
+		}
+		e.preventDefault();
+		if ( btn.getAttribute( 'data-confirm' ) && ! window.confirm( t.confirm ) ) {
+			return;
+		}
+		var method = btn.getAttribute( 'data-method' ) || 'POST';
+		var body = {};
+		try {
+			body = JSON.parse( btn.getAttribute( 'data-body' ) || '{}' );
+		} catch ( err ) {
+			body = {};
+		}
+		var sel = btn.getAttribute( 'data-ids' );
+		if ( sel ) {
+			body.ids = Array.prototype.map.call( document.querySelectorAll( sel + ':checked' ), function ( c ) {
+				return c.value;
+			} );
+			if ( ! body.ids.length ) {
+				alert( 'ابتدا موردی را انتخاب کنید.' );
+				return;
+			}
+		}
+		var fields = btn.getAttribute( 'data-fields' );
+		if ( 'row' === fields ) {
+			collectFields( btn.closest( '.dkb-row-fields' ) || btn.closest( 'tr' ), body );
+		} else if ( fields ) {
+			collectFields( btn.closest( '.dkb-bulkbar' ) || btn.parentNode, body );
+		}
+		var out = ( btn.parentNode && btn.parentNode.querySelector( '.dkb-result' ) ) || null;
+		setResult( out, t.loading );
+		btn.disabled = true;
+		var opts = { method: method };
+		if ( 'GET' !== method ) {
+			opts.body = body;
+		}
+		api( btn.getAttribute( 'data-dkb-call' ), opts ).then( function ( r ) {
+			var modalType = btn.getAttribute( 'data-modal' );
+			if ( modalType && modalRenderers[ modalType ] ) {
+				setResult( out, '' );
+				openModal( modalRenderers[ modalType ]( r ) );
+			} else {
+				var msg = t.saved;
+				if ( r && 'object' === typeof r ) {
+					if ( r.synced !== undefined ) {
+						msg = 'همگام شد: ' + r.synced + ' تنوع، ' + r.linked + ' اتصال جدید';
+					} else if ( r.marked !== undefined ) {
+						msg = r.marked + ' تنوع برای ارسال موجودی علامت خورد';
+					} else if ( r.joined !== undefined ) {
+						msg = r.joined + ' تنوع به ' + r.promotions + ' پروموشن پیوست';
+					} else if ( r.urgent !== undefined ) {
+						msg = r.urgent + ' مورد فوری';
+					} else if ( r.errors && r.errors.length ) {
+						msg = r.ok + ' موفق؛ خطا: ' + r.errors.join( '، ' );
+					}
+				}
+				setResult( out, msg, true );
+			}
+			if ( btn.getAttribute( 'data-reload' ) ) {
+				setTimeout( function () {
+					window.location.reload();
+				}, 700 );
+			}
+		} ).catch( function ( err ) {
+			setResult( out, err.message, false );
+			if ( ! out ) {
+				alert( err.message );
+			}
+		} ).then( function () {
+			btn.disabled = false;
+		} );
+	} );
+
+	document.addEventListener( 'change', function ( e ) {
+		if ( e.target.classList && e.target.classList.contains( 'dkb-sel-all' ) ) {
+			var table = e.target.closest( 'table' );
+			Array.prototype.forEach.call( table.querySelectorAll( '.dkb-sel' ), function ( c ) {
+				c.checked = e.target.checked;
+			} );
+		}
+	} );
+
+	// Consignment package from the replenishment plan.
+	var pkgBtn = document.getElementById( 'dkb-pkg-create' );
+	if ( pkgBtn ) {
+		pkgBtn.addEventListener( 'click', function () {
+			var items = Array.prototype.map.call( document.querySelectorAll( '.dkb-pkg-qty' ), function ( i ) {
+				return { variant_id: i.getAttribute( 'data-variant' ), count: parseInt( i.value, 10 ) || 0 };
+			} ).filter( function ( r ) {
+				return r.count > 0;
+			} );
+			var out = document.getElementById( 'dkb-pkg-result' );
+			if ( ! items.length ) {
+				setResult( out, 'تعدادی برای ارسال وارد نشده است.', false );
+				return;
+			}
+			var total = items.reduce( function ( a, r ) {
+				return a + r.count;
+			}, 0 );
+			if ( ! window.confirm( 'ساخت محموله با ' + items.length + ' تنوع و ' + total + ' عدد کالا؟ هر کالای ثبت‌شده که به انبار نرسد جریمهٔ مغایرت دارد.' ) ) {
+				return;
+			}
+			pkgBtn.disabled = true;
+			setResult( out, t.loading );
+			api( 'm/logistics/package', { method: 'POST', body: { type: pkgBtn.getAttribute( 'data-type' ), items: items, date: document.getElementById( 'dkb-pkg-date' ).value, delivery_type: document.getElementById( 'dkb-pkg-delivery' ).value } } ).then( function () {
+				setResult( out, 'محموله ساخته شد؛ لیبل‌ها را از تب «محموله‌ها» چاپ کنید.', true );
+			} ).catch( function ( err ) {
+				setResult( out, err.message, false );
+			} ).then( function () {
+				pkgBtn.disabled = false;
+			} );
+		} );
+	}
+
+	// Promotion plan.
+	document.addEventListener( 'click', function ( e ) {
+		var b = e.target.closest( '.dkb-promo-plan' );
+		if ( ! b ) {
+			return;
+		}
+		var id = b.getAttribute( 'data-id' );
+		var load = function ( discount ) {
+			openModal( '<p>' + esc( t.loading ) + '</p>' );
+			api( 'm/promotions/' + id + '/plan', { query: { discount: discount || 0 } } ).then( function ( plan ) {
+				var rows = plan.rows.map( function ( r, i ) {
+					return '<tr class="' + ( r.join ? '' : 'dkb-muted' ) + '"><td><input type="checkbox" class="dkb-plan-sel" data-i="' + i + '" ' + ( r.join ? 'checked' : 'disabled' ) + '></td><td>' + esc( r.title ) + ( r.hot ? ' <span class="dkb-badge dkb-state-match_review">پرتقاضا</span>' : '' ) + '<div class="dkb-muted">DKPC-' + esc( r.variant_id ) + ' · فروش هفته ' + esc( r.sales ) + '</div></td><td>' + money( r.selling_price ) + '</td><td><input type="number" class="dkb-plan-price" data-i="' + i + '" value="' + esc( r.promotion_price ) + '" step="100" style="width:120px"></td><td>' + esc( r.discount ) + '٪</td><td>' + money( r.floor ) + '</td><td><input type="number" class="small-text dkb-plan-limit" data-i="' + i + '" value="' + esc( r.price_limit || 1 ) + '" min="1"></td><td>' + esc( r.reason ) + '</td></tr>';
+				} ).join( '' );
+				openModal( '<h2>' + esc( plan.promotion.title || '' ) + '</h2><p>حداقل تخفیف: ' + esc( plan.min ) + '٪ · <label>تخفیف دلخواه <input type="number" id="dkb-plan-discount" value="' + esc( discount || plan.min ) + '" class="small-text">٪</label> <button type="button" class="button" id="dkb-plan-reload">محاسبهٔ دوباره</button></p>' +
+					'<table class="widefat striped"><thead><tr><th></th><th>تنوع</th><th>قیمت فعلی</th><th>قیمت پروموشن (ریال)</th><th>تخفیف</th><th>کف سود</th><th>تعداد</th><th>توضیح</th></tr></thead><tbody>' + ( rows || '<tr><td colspan="8">تنوع واجد شرایطی نیست.</td></tr>' ) + '</tbody></table>' +
+					'<p><button type="button" class="button button-primary" id="dkb-plan-join">پیوستن انتخاب‌شده‌ها</button> <span class="dkb-result" id="dkb-plan-result"></span></p>' );
+				document.getElementById( 'dkb-plan-reload' ).onclick = function () {
+					load( document.getElementById( 'dkb-plan-discount' ).value );
+				};
+				document.getElementById( 'dkb-plan-join' ).onclick = function () {
+					var chosen = Array.prototype.filter.call( document.querySelectorAll( '.dkb-plan-sel' ), function ( c ) {
+						return c.checked;
+					} ).map( function ( c ) {
+						var i = c.getAttribute( 'data-i' );
+						var r = plan.rows[ i ];
+						return { variant_id: r.variant_id, promotion_price: document.querySelector( '.dkb-plan-price[data-i="' + i + '"]' ).value, price_limit: document.querySelector( '.dkb-plan-limit[data-i="' + i + '"]' ).value, order_limit: r.order_limit || 1 };
+					} );
+					var out = document.getElementById( 'dkb-plan-result' );
+					if ( ! chosen.length ) {
+						setResult( out, 'موردی انتخاب نشده.', false );
+						return;
+					}
+					setResult( out, t.loading );
+					api( 'm/promotions/' + id + '/join', { method: 'POST', body: { rows: chosen } } ).then( function ( r ) {
+						setResult( out, r.ok + ' تنوع ثبت شد' + ( r.errors && r.errors.length ? '؛ خطا: ' + r.errors.join( '، ' ) : '' ), ! ( r.errors && r.errors.length ) );
+					} ).catch( function ( err ) {
+						setResult( out, err.message, false );
+					} );
+				};
+			} ).catch( function ( err ) {
+				openModal( '<p class="dkb-bad">' + esc( err.message ) + '</p>' );
+			} );
+		};
+		load( 0 );
+	} );
+
 }() );

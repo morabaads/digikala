@@ -62,11 +62,19 @@ class Admin {
 		$icon = 'data:image/svg+xml;base64,' . base64_encode( '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path fill="#a7aaad" d="M3 4h6a6 6 0 0 1 0 12H3V4zm3 3v6h3a3 3 0 0 0 0-6H6zm8.5-3H18l-4 6 4 6h-3.5l-4-6z"/></svg>' );
 		add_menu_page( __( 'دیجی‌کالا', 'dk-bridge' ), __( 'دیجی‌کالا', 'dk-bridge' ), $cap, self::SLUG, array( $this, 'page_dashboard' ), $icon, 56 );
 		add_submenu_page( self::SLUG, __( 'داشبورد', 'dk-bridge' ), __( 'داشبورد', 'dk-bridge' ), $cap, self::SLUG, array( $this, 'page_dashboard' ) );
-		add_submenu_page( self::SLUG, __( 'محصولات', 'dk-bridge' ), __( 'محصولات', 'dk-bridge' ), $cap, self::SLUG . '-products', array( $this, 'page_products' ) );
+		add_submenu_page( self::SLUG, __( 'دستیار امروز', 'dk-bridge' ), __( 'دستیار امروز', 'dk-bridge' ), $cap, self::SLUG . '-assistant', array( $this, 'page_module' ) );
+		add_submenu_page( self::SLUG, __( 'محتوا و ارسال', 'dk-bridge' ), __( 'محتوا و ارسال', 'dk-bridge' ), $cap, self::SLUG . '-products', array( $this, 'page_products' ) );
+		add_submenu_page( self::SLUG, __( 'مدیریت کالا', 'dk-bridge' ), __( 'مدیریت کالا', 'dk-bridge' ), $cap, self::SLUG . '-catalog', array( $this, 'page_module' ) );
+		add_submenu_page( self::SLUG, __( 'مدیریت موجودی', 'dk-bridge' ), __( 'مدیریت موجودی', 'dk-bridge' ), $cap, self::SLUG . '-inventory', array( $this, 'page_module' ) );
+		add_submenu_page( self::SLUG, __( 'لجستیک هوشمند', 'dk-bridge' ), __( 'لجستیک هوشمند', 'dk-bridge' ), $cap, self::SLUG . '-logistics', array( $this, 'page_module' ) );
+		add_submenu_page( self::SLUG, __( 'قیمت‌گذاری هوشمند', 'dk-bridge' ), __( 'قیمت‌گذاری هوشمند', 'dk-bridge' ), $cap, self::SLUG . '-pricing', array( $this, 'page_module' ) );
+		add_submenu_page( self::SLUG, __( 'پروموشن‌ها', 'dk-bridge' ), __( 'پروموشن‌ها', 'dk-bridge' ), $cap, self::SLUG . '-promotions', array( $this, 'page_module' ) );
+		add_submenu_page( self::SLUG, __( 'تحلیل عملکرد', 'dk-bridge' ), __( 'تحلیل عملکرد', 'dk-bridge' ), $cap, self::SLUG . '-analytics', array( $this, 'page_module' ) );
 		add_submenu_page( self::SLUG, __( 'نگاشت دسته‌ها', 'dk-bridge' ), __( 'نگاشت دسته‌ها', 'dk-bridge' ), $cap, self::SLUG . '-categories', array( $this, 'page_categories' ) );
 		add_submenu_page( self::SLUG, __( 'نگاشت ویژگی‌ها', 'dk-bridge' ), __( 'نگاشت ویژگی‌ها', 'dk-bridge' ), $cap, self::SLUG . '-attributes', array( $this, 'page_attributes' ) );
 		add_submenu_page( self::SLUG, __( 'تنظیمات', 'dk-bridge' ), __( 'تنظیمات', 'dk-bridge' ), $cap, self::SLUG . '-settings', array( $this, 'page_settings' ) );
 		add_submenu_page( self::SLUG, __( 'گزارش‌ها', 'dk-bridge' ), __( 'گزارش‌ها', 'dk-bridge' ), $cap, self::SLUG . '-logs', array( $this, 'page_logs' ) );
+		add_submenu_page( self::SLUG, __( 'قوانین دیجی‌کالا', 'dk-bridge' ), __( 'قوانین دیجی‌کالا', 'dk-bridge' ), $cap, self::SLUG . '-rules', array( $this, 'page_module' ) );
 	}
 
 	/**
@@ -153,6 +161,12 @@ class Admin {
 			if ( isset( $defaults[ $key ] ) && ! isset( $raw[ $key ] ) ) {
 				$raw[ $key ] = false;
 			}
+		}
+		if ( 'smart' === $tab && ! isset( $raw['promo_natures'] ) ) {
+			$raw['promo_natures'] = array();
+		}
+		if ( isset( $raw['alert_email'] ) ) {
+			$raw['alert_email'] = sanitize_email( $raw['alert_email'] );
 		}
 		if ( isset( $raw['webhook_events'] ) && is_array( $raw['webhook_events'] ) ) {
 			$raw['webhook_events'] = array_map( 'sanitize_key', $raw['webhook_events'] );
@@ -352,6 +366,30 @@ class Admin {
 	/** Page. */
 	public function page_settings() {
 		Pages::settings( $this->plugin );
+	}
+
+	/**
+	 * Module pages dispatcher.
+	 */
+	public function page_module() {
+		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$map  = array(
+			'dk-bridge-assistant'  => 'assistant',
+			'dk-bridge-catalog'    => 'catalog',
+			'dk-bridge-inventory'  => 'inventory',
+			'dk-bridge-logistics'  => 'logistics',
+			'dk-bridge-pricing'    => 'pricing',
+			'dk-bridge-promotions' => 'promotions',
+			'dk-bridge-analytics'  => 'analytics',
+			'dk-bridge-rules'      => 'rules',
+		);
+		if ( isset( $map[ $page ] ) ) {
+			try {
+				call_user_func( array( ModulePages::class, $map[ $page ] ), $this->plugin );
+			} catch ( \Throwable $e ) {
+				echo '<div class="wrap"><div class="notice notice-error"><p>' . esc_html( $e->getMessage() ) . '</p></div></div>';
+			}
+		}
 	}
 
 	/** Page. */

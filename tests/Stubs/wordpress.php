@@ -96,3 +96,15 @@ function wp_list_pluck( $list, $field ) {
 		(array) $list
 	);
 }
+function esc_html( $s ) {
+	return htmlspecialchars( (string) $s, ENT_QUOTES, 'UTF-8' );
+}
+function esc_attr( $s ) {
+	return htmlspecialchars( (string) $s, ENT_QUOTES, 'UTF-8' );
+}
+function esc_html__( $s, $d = 'default' ) {
+	return esc_html( $s );
+}
+function esc_url( $s ) {
+	return htmlspecialchars( (string) $s, ENT_QUOTES, 'UTF-8' );
+}

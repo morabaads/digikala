@@ -113,3 +113,45 @@
 	.dkb-wrap .column-actions, .dkb-wrap .column-category { display: none; }
 	.dkb-box-head { flex-direction: column; align-items: flex-start; }
 }
+
+/* Modules */
+.dkb-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 14px 0; }
+.dkb-kpi { display: flex; flex-direction: column; gap: 4px; background: #fff; border: 1px solid #e0e0e6; border-radius: 10px; padding: 12px 14px; text-decoration: none; color: inherit; }
+.dkb-kpi span { color: #52514e; font-size: 12px; }
+.dkb-kpi b { font-size: 20px; color: #0b0b0b; }
+.dkb-kpi em { font-style: normal; font-size: 12px; }
+.dkb-kpis-wide .dkb-kpi { min-height: 92px; }
+.dkb-spark { margin-top: 4px; }
+.dkb-health-out b, .dkb-badge.dkb-health-out { color: #c62828; }
+.dkb-badge.dkb-health-out { background: #fdecea; }
+.dkb-badge.dkb-health-low { background: #fff8e1; color: #a66b00; }
+.dkb-badge.dkb-health-ok { background: #e6f6ec; color: #00873d; }
+.dkb-badge.dkb-health-overstock { background: #e3f2fd; color: #1565c0; }
+.dkb-badge.dkb-health-no_sales { background: #eceff1; color: #546e7a; }
+.dkb-badge.dkb-urgency-critical { background: #fdecea; color: #c62828; }
+.dkb-badge.dkb-urgency-high { background: #fff8e1; color: #a66b00; }
+.dkb-badge.dkb-urgency-normal { background: #e3f2fd; color: #1565c0; }
+.dkb-bulkbar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; background: #fff; border: 1px solid #e0e0e6; border-radius: 8px; padding: 8px 10px; margin: 10px 0; }
+.dkb-sep { width: 1px; height: 22px; background: #e0e0e6; margin: 0 6px; }
+.dkb-table td { vertical-align: middle; }
+.dkb-package-form { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 12px 0; }
+.dkb-tasks { display: grid; gap: 10px; margin: 14px 0; }
+.dkb-task { display: flex; flex-direction: column; gap: 4px; background: #fff; border: 1px solid #e0e0e6; border-right: 4px solid #90a4ae; border-radius: 8px; padding: 12px 14px; text-decoration: none; color: #1d2327; }
+.dkb-task:hover { box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+.dkb-task-p1 { border-right-color: #d03b3b; }
+.dkb-task-p2 { border-right-color: #ec835a; }
+.dkb-task-p3 { border-right-color: #fab219; }
+.dkb-task-badge { font-size: 11px; color: #52514e; }
+.dkb-task-count { display: inline-block; min-width: 22px; padding: 0 6px; border-radius: 11px; background: #eceff1; font-size: 12px; text-align: center; }
+.dkb-link-card { text-decoration: none; color: inherit; }
+.dkb-link-card:hover { border-color: #ef394e; }
+.dkb-grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+.dkb-figure { margin: 0; }
+.dkb-figure figcaption { font-weight: 600; margin-bottom: 6px; }
+.dkb-chart { width: 100%; height: auto; direction: ltr; }
+.dkb-chart .dkb-hit:hover { fill: rgba(42,120,214,.06); }
+.dkb-legend { display: flex; gap: 16px; font-size: 12px; color: #52514e; margin-bottom: 6px; }
+.dkb-legend i { display: inline-block; width: 12px; height: 3px; border-radius: 2px; margin-left: 6px; vertical-align: middle; }
+.dkb-table-view summary { cursor: pointer; font-size: 12px; color: #52514e; margin-top: 6px; }
+.dkb-rules li { margin-bottom: 6px; line-height: 1.8; }
+.dkb-range { margin: 10px 0; }

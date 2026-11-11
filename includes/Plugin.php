@@ -196,6 +196,93 @@ final class Plugin {
 		);
 	}
 
+	/** @return Data\VariantRepository */
+	public function variants() {
+		return $this->service(
+			'variants',
+			static function () {
+				return new Data\VariantRepository();
+			}
+		);
+	}
+
+	/** @return Modules\CatalogService */
+	public function catalog() {
+		$self = $this;
+		return $this->service(
+			'catalog',
+			static function () use ( $self ) {
+				return new Modules\CatalogService( $self->settings(), $self->api(), $self->variants(), $self->items(), $self->logger() );
+			}
+		);
+	}
+
+	/** @return Modules\InventoryService */
+	public function inventory_service() {
+		$self = $this;
+		return $this->service(
+			'inventory_service',
+			static function () use ( $self ) {
+				return new Modules\InventoryService( $self->settings(), $self->variants(), $self->items(), $self->mapper(), $self->catalog(), $self->logger() );
+			}
+		);
+	}
+
+	/** @return Modules\LogisticsService */
+	public function logistics() {
+		$self = $this;
+		return $this->service(
+			'logistics',
+			static function () use ( $self ) {
+				return new Modules\LogisticsService( $self->settings(), $self->api(), $self->variants(), $self->mapper(), $self->logger() );
+			}
+		);
+	}
+
+	/** @return Modules\RepricerService */
+	public function repricer() {
+		$self = $this;
+		return $this->service(
+			'repricer',
+			static function () use ( $self ) {
+				return new Modules\RepricerService( $self->settings(), $self->api(), $self->variants(), $self->items(), $self->mapper(), $self->logger() );
+			}
+		);
+	}
+
+	/** @return Modules\PromotionService */
+	public function promotions() {
+		$self = $this;
+		return $this->service(
+			'promotions',
+			static function () use ( $self ) {
+				return new Modules\PromotionService( $self->settings(), $self->api(), $self->variants(), $self->items(), $self->mapper(), $self->logger() );
+			}
+		);
+	}
+
+	/** @return Modules\AnalyticsService */
+	public function analytics() {
+		$self = $this;
+		return $this->service(
+			'analytics',
+			static function () use ( $self ) {
+				return new Modules\AnalyticsService( $self->settings(), $self->api(), $self->variants() );
+			}
+		);
+	}
+
+	/** @return Modules\AssistantService */
+	public function assistant() {
+		$self = $this;
+		return $this->service(
+			'assistant',
+			static function () use ( $self ) {
+				return new Modules\AssistantService( $self );
+			}
+		);
+	}
+
 	/**
 	 * Whether a token is configured.
 	 *
@@ -224,8 +311,15 @@ final class Plugin {
 		add_action( 'dkb_pull_orders', array( $this, 'job_orders' ) );
 		add_action( 'dkb_reconcile', array( $this, 'job_reconcile' ) );
 		add_action( 'dkb_cleanup', array( $this, 'job_cleanup' ) );
+		add_action( 'dkb_catalog_sync', array( $this, 'job_catalog_sync' ) );
+		add_action( 'dkb_reprice', array( $this, 'job_reprice' ) );
+		add_action( 'dkb_promotions_auto', array( $this, 'job_promotions_auto' ) );
+		add_action( 'dkb_inventory_alerts', array( $this, 'job_inventory_alerts' ) );
 
 		$this->inventory()->register();
+		if ( $this->is_connected() ) {
+			$this->catalog()->register();
+		}
 
 		add_action( 'rest_api_init', array( $this, 'register_rest' ) );
 		add_action( 'before_delete_post', array( $this, 'on_delete_post' ) );
@@ -253,6 +347,7 @@ final class Plugin {
 	public function register_rest() {
 		( new WebhookController( $this->settings(), $this->items(), $this->poller(), $this->orders(), $this->logger() ) )->register_routes();
 		( new Admin\RestController( $this ) )->register_routes();
+		( new Admin\ModulesRestController( $this ) )->register_routes();
 	}
 
 	/**
@@ -336,6 +431,35 @@ final class Plugin {
 	public function job_reconcile() {
 		if ( $this->is_connected() ) {
 			$this->items()->mark_all_live_dirty();
+		}
+	}
+
+	/** Job. */
+	public function job_catalog_sync() {
+		if ( $this->is_connected() && $this->settings()->get( 'catalog_sync' ) ) {
+			$this->catalog()->sync();
+		}
+	}
+
+	/** Job. */
+	public function job_reprice() {
+		if ( $this->is_connected() ) {
+			$this->repricer()->run( true );
+		}
+	}
+
+	/** Job. */
+	public function job_promotions_auto() {
+		if ( $this->is_connected() ) {
+			$this->promotions()->auto_join();
+		}
+	}
+
+	/** Job. */
+	public function job_inventory_alerts() {
+		if ( $this->is_connected() ) {
+			$this->inventory_service()->alerts();
+			delete_transient( Modules\AssistantService::CACHE );
 		}
 	}
 
