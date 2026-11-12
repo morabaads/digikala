@@ -291,7 +291,7 @@ class Client {
 			$headers['User-Agent'] = 'DKBridge/' . ( defined( 'DKB_VERSION' ) ? DKB_VERSION : '1' ) . ' (WordPress)';
 		}
 		if ( $auth ) {
-			if ( 'oauth' === $this->settings->get( 'auth_mode' ) && $this->tokens->expires_at() && $this->tokens->expires_at() < time() + 60 && $this->can_refresh() ) {
+			if ( $this->tokens->expires_at() && $this->tokens->expires_at() < time() + 60 && $this->can_refresh() ) {
 				$this->refresh();
 			}
 			$token = $this->tokens->access_token();

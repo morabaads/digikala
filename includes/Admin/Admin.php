@@ -213,6 +213,11 @@ class Admin {
 			}
 		}
 		$code = isset( $_POST['dkb_authorization_code'] ) ? trim( sanitize_text_field( wp_unslash( $_POST['dkb_authorization_code'] ) ) ) : '';
+		if ( '' !== $code && 'error' !== $msg && strlen( $code ) > 200 && ! \DKBridge\Security\KeyPair::looks_encrypted( $code ) ) {
+			set_transient( 'dkb_admin_error', __( 'کد اعتبارسنجی کامل کپی نشده است؛ در پنل دوباره «کپی کردن» را بزنید و کل متن را جای‌گذاری کنید.', 'dk-bridge' ), 60 );
+			$msg  = 'error';
+			$code = '';
+		}
 		if ( '' !== $code && 'error' !== $msg ) {
 			try {
 				$this->plugin->api()->client()->exchange_code( $code );

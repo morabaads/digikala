@@ -33,6 +33,7 @@ class Settings {
 			// Connection.
 			'auth_mode'                 => 'self_token', // self_token | oauth.
 			'seller_code'               => '',
+			'client_code'               => '',
 			'base_url'                  => 'https://seller.digikala.com',
 			'dry_run'                   => false,
 			'rate_limit'                => 300,
