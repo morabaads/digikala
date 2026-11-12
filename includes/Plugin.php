@@ -299,6 +299,7 @@ final class Plugin {
 		Installer::maybe_upgrade();
 
 		add_filter( 'cron_schedules', array( Queue::class, 'cron_schedules' ) );
+		add_filter( 'dkb_decrypt_authorization_code', array( $this, 'decrypt_code' ), 5 );
 		add_action( 'init', array( $this, 'on_init' ) );
 
 		// Jobs.
@@ -330,6 +331,19 @@ final class Plugin {
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
 			\WP_CLI::add_command( 'dkb', new Cli\Command( $this ) );
 		}
+	}
+
+	/**
+	 * Decrypt an authorization / validation code encrypted with our public key.
+	 *
+	 * @param string $code Code.
+	 * @return string
+	 */
+	public function decrypt_code( $code ) {
+		if ( Security\KeyPair::looks_encrypted( $code ) && Security\KeyPair::stored() ) {
+			return trim( Security\KeyPair::decrypt_stored( $code ) );
+		}
+		return $code;
 	}
 
 	/**

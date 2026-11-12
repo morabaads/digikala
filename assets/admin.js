@@ -746,4 +746,23 @@
 		load( 0 );
 	} );
 
+
+	// Copy the public key for the seller panel.
+	var copyKey = document.getElementById( 'dkb-copy-key' );
+	if ( copyKey ) {
+		copyKey.addEventListener( 'click', function () {
+			var ta = document.getElementById( 'dkb-public-key' );
+			var done = function () {
+				setResult( document.getElementById( 'dkb-copy-result' ), 'کپی شد؛ در پنل فروشندگان جای‌گذاری کنید.', true );
+			};
+			if ( navigator.clipboard ) {
+				navigator.clipboard.writeText( ta.value ).then( done );
+			} else {
+				ta.select();
+				document.execCommand( 'copy' );
+				done();
+			}
+		} );
+	}
+
 }() );

@@ -300,7 +300,7 @@ class Pages {
 				$f( 'seller_code', __( 'کد فروشنده', 'dk-bridge' ), 'text', array( 'help' => __( 'برای توکن شخصی لازم است (در هدر User-Agent ارسال می‌شود). کد فروشنده را در پروفایل پنل فروشندگان ببینید.', 'dk-bridge' ) ) );
 				$rows .= '<tr><th><label for="dkb_access_token">' . esc_html__( 'Access Token', 'dk-bridge' ) . '</label></th><td><input type="password" autocomplete="off" id="dkb_access_token" name="dkb_access_token" class="large-text" placeholder="' . esc_attr( $tokens->has_token() ? Crypto::mask( $tokens->access_token() ) : '' ) . '"><p class="description">' . esc_html__( 'توکن به‌صورت رمزنگاری‌شده ذخیره می‌شود. برای نگه داشتن توکن فعلی خالی بگذارید.', 'dk-bridge' ) . '</p></td></tr>';
 				$rows .= '<tr><th><label for="dkb_refresh_token">' . esc_html__( 'Refresh Token', 'dk-bridge' ) . '</label></th><td><input type="password" autocomplete="off" id="dkb_refresh_token" name="dkb_refresh_token" class="large-text"><p class="description">' . esc_html__( 'اختیاری؛ برای تمدید خودکار توکن.', 'dk-bridge' ) . '</p></td></tr>';
-				$rows .= '<tr><th><label for="dkb_authorization_code">' . esc_html__( 'Authorization Code', 'dk-bridge' ) . '</label></th><td><input type="text" autocomplete="off" id="dkb_authorization_code" name="dkb_authorization_code" class="large-text"><p class="description">' . esc_html__( 'فقط در حالت اپلیکیشن ثبت‌شده: کد دریافتی پس از تأیید فروشنده.', 'dk-bridge' ) . '</p></td></tr>';
+				$rows .= '<tr><th><label for="dkb_authorization_code">' . esc_html__( 'کد اعتبارسنجی / Authorization Code', 'dk-bridge' ) . '</label></th><td><textarea autocomplete="off" id="dkb_authorization_code" name="dkb_authorization_code" rows="3" class="large-text" dir="ltr"></textarea><p class="description">' . esc_html__( 'کدی که دیجی‌کالا پس از ثبت کلید عمومی (یا تأیید اپلیکیشن) می‌دهد. اگر رمزشده باشد، با کلید خصوصی همین سایت رمزگشایی و با /auth/token به توکن تبدیل می‌شود.', 'dk-bridge' ) . '</p></td></tr>';
 				if ( $tokens->expires_at() ) {
 					$rows .= '<tr><th>' . esc_html__( 'انقضای توکن', 'dk-bridge' ) . '</th><td>' . esc_html( wp_date( 'Y/m/d H:i', $tokens->expires_at() ) ) . '</td></tr>';
 				}
@@ -523,6 +523,9 @@ class Pages {
 		submit_button( __( 'ذخیره', 'dk-bridge' ) );
 		echo '</form>';
 
+		if ( 'connection' === $tab ) {
+			self::key_card();
+		}
 		if ( 'connection' === $tab && $plugin->is_connected() ) {
 			echo '<div class="dkb-card"><button type="button" class="button" data-dkb-action="connection-test">' . esc_html__( 'تست اتصال', 'dk-bridge' ) . '</button> <span class="dkb-result" data-dkb-result="connection-test"></span>';
 			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline-block;margin-right:12px">';
@@ -531,6 +534,29 @@ class Pages {
 			echo '<div class="dkb-card dkb-help"><h3>' . esc_html__( 'نکته', 'dk-bridge' ) . '</h3><p>' . esc_html__( 'Open API دیجی‌کالا فقط از سرورهایی پاسخ می‌دهد که به شبکهٔ دیجی‌کالا دسترسی دارند (معمولاً IP ایران). اگر تست اتصال با خطای شبکه مواجه شد، میزبانی سایت را بررسی کنید.', 'dk-bridge' ) . '</p></div>';
 		}
 		self::footer();
+	}
+
+	/**
+	 * RSA key pair card for «ثبت توکن اختصاصی».
+	 */
+	private static function key_card() {
+		$info = \DKBridge\Security\KeyPair::stored();
+		$url  = static function ( $do ) {
+			return wp_nonce_url( admin_url( 'admin-post.php?action=dkb_keys&do=' . $do ), 'dkb_keys' );
+		};
+		echo '<div class="dkb-card" id="dkb-keys"><h2>' . esc_html__( 'کلید رمزنگاری برای «ثبت توکن اختصاصی»', 'dk-bridge' ) . '</h2>';
+		echo '<p>' . esc_html__( 'دیجی‌کالا برای ارسال داده‌های حساس از رمزنگاری RSA (۴۰۹۶ بیت) استفاده می‌کند. افزونه جفت‌کلید را می‌سازد؛ کلید خصوصی رمزشده روی همین سایت می‌ماند و فقط کلید عمومی را در پنل فروشندگان وارد می‌کنید.', 'dk-bridge' ) . '</p>';
+		echo '<ol class="dkb-steps-list"><li>' . esc_html__( 'دکمهٔ «ساخت جفت‌کلید» را بزنید.', 'dk-bridge' ) . '</li><li>' . esc_html__( 'کل کلید عمومی (از -----BEGIN PUBLIC KEY----- تا -----END PUBLIC KEY-----) را کپی و در پنل فروشندگان، مرحلهٔ «اطلاعات کلید عمومی» وارد و «ثبت کلید عمومی» را بزنید.', 'dk-bridge' ) . '</li><li>' . esc_html__( 'کد یا توکنی را که دیجی‌کالا پس از آن نشان می‌دهد در فیلد «کد اعتبارسنجی» یا «Access Token» بالا وارد و ذخیره کنید؛ اگر رمزشده باشد خودکار رمزگشایی می‌شود.', 'dk-bridge' ) . '</li></ol>';
+		if ( $info ) {
+			echo '<p><label for="dkb-public-key"><strong>' . esc_html__( 'کلید عمومی شما', 'dk-bridge' ) . '</strong></label> <span class="dkb-muted">' . esc_html( sprintf( __( 'RSA %1$d بیت · اثرانگشت %2$s · ساخته‌شده %3$s', 'dk-bridge' ), $info['bits'], $info['fingerprint'], $info['created_at'] ? wp_date( 'Y/m/d H:i', $info['created_at'] ) : '—' ) ) . '</span></p>';
+			echo '<textarea id="dkb-public-key" class="large-text code" rows="14" dir="ltr" readonly onclick="this.select()">' . esc_textarea( $info['public'] ) . '</textarea>';
+			echo '<p><button type="button" class="button button-primary" id="dkb-copy-key">' . esc_html__( 'کپی کلید عمومی', 'dk-bridge' ) . '</button> <a class="button" href="' . esc_url( $url( 'download' ) ) . '">' . esc_html__( 'دانلود فایل .pem', 'dk-bridge' ) . '</a> <a class="button button-link-delete" href="' . esc_url( $url( 'generate' ) ) . '" onclick="return confirm(\'' . esc_js( __( 'کلید جدید ساخته شود؟ کلید عمومی قبلی که در پنل ثبت کرده‌اید دیگر کار نمی‌کند و باید کلید جدید را دوباره ثبت کنید.', 'dk-bridge' ) ) . '\')">' . esc_html__( 'ساخت کلید جدید', 'dk-bridge' ) . '</a> <a class="button-link-delete" href="' . esc_url( $url( 'delete' ) ) . '" onclick="return confirm(\'' . esc_js( __( 'جفت‌کلید حذف شود؟', 'dk-bridge' ) ) . '\')">' . esc_html__( 'حذف', 'dk-bridge' ) . '</a> <span class="dkb-result" id="dkb-copy-result"></span></p>';
+		} else {
+			echo '<p><a class="button button-primary button-hero" href="' . esc_url( $url( 'generate' ) ) . '">' . esc_html__( 'ساخت جفت‌کلید RSA ۴۰۹۶ بیتی', 'dk-bridge' ) . '</a></p>';
+		}
+		echo '<details><summary>' . esc_html__( 'قبلاً جفت‌کلید ساخته‌اید؟ کلید خصوصی موجود را وارد کنید', 'dk-bridge' ) . '</summary><form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+		wp_nonce_field( 'dkb_keys' );
+		echo '<input type="hidden" name="action" value="dkb_keys"><input type="hidden" name="do" value="import"><textarea name="dkb_private_key" class="large-text code" rows="8" dir="ltr" placeholder="-----BEGIN PRIVATE KEY-----"></textarea><p class="description">' . esc_html__( 'کلید خصوصی رمزشده ذخیره می‌شود و هرگز نمایش داده یا به جایی ارسال نمی‌شود.', 'dk-bridge' ) . '</p><button class="button">' . esc_html__( 'وارد کردن کلید', 'dk-bridge' ) . '</button></form></details></div>';
 	}
 
 	// -------------------------------------------------------------------- Logs.

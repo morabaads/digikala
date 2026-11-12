@@ -213,6 +213,7 @@ class Installer {
 		delete_option( Settings::OPTION );
 		delete_option( 'dkb_db_version' );
 		delete_option( Api\TokenStore::OPTION );
+		delete_option( Security\KeyPair::OPTION );
 		$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '\_transient\_dkb\_%' OR option_name LIKE '\_transient\_timeout\_dkb\_%'" );
 		$wpdb->query( "DELETE FROM {$wpdb->postmeta} WHERE meta_key LIKE '\_dkb\_%'" );
 	}

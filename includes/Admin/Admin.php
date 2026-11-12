@@ -41,6 +41,7 @@ class Admin {
 		add_action( 'admin_init', array( $this, 'activation_redirect' ) );
 		add_action( 'admin_post_dkb_save_settings', array( $this, 'save_settings' ) );
 		add_action( 'admin_post_dkb_disconnect', array( $this, 'disconnect' ) );
+		add_action( 'admin_post_dkb_keys', array( $this, 'keys' ) );
 		add_action( 'admin_post_dkb_export_logs', array( $this, 'export_logs' ) );
 		add_filter( 'plugin_action_links_' . DKB_BASENAME, array( $this, 'action_links' ) );
 
@@ -194,13 +195,25 @@ class Admin {
 		$tokens = new TokenStore();
 		$access = isset( $_POST['dkb_access_token'] ) ? trim( sanitize_text_field( wp_unslash( $_POST['dkb_access_token'] ) ) ) : '';
 		$refresh = isset( $_POST['dkb_refresh_token'] ) ? trim( sanitize_text_field( wp_unslash( $_POST['dkb_refresh_token'] ) ) ) : '';
+		$msg     = 'saved';
 		if ( '' !== $access ) {
-			$tokens->save( $access, $refresh, TokenStore::jwt_expiry( $access ) );
-			delete_transient( 'dkb_recurring_checked' );
+			try {
+				// Values Digikala shows encrypted with our public key are decrypted here.
+				if ( \DKBridge\Security\KeyPair::looks_encrypted( $access ) && \DKBridge\Security\KeyPair::stored() ) {
+					$access = trim( \DKBridge\Security\KeyPair::decrypt_stored( $access ) );
+				}
+				if ( '' !== $refresh && \DKBridge\Security\KeyPair::looks_encrypted( $refresh ) && \DKBridge\Security\KeyPair::stored() ) {
+					$refresh = trim( \DKBridge\Security\KeyPair::decrypt_stored( $refresh ) );
+				}
+				$tokens->save( $access, $refresh, TokenStore::jwt_expiry( $access ) );
+				delete_transient( 'dkb_recurring_checked' );
+			} catch ( \Exception $e ) {
+				set_transient( 'dkb_admin_error', $e->getMessage(), 60 );
+				$msg = 'error';
+			}
 		}
 		$code = isset( $_POST['dkb_authorization_code'] ) ? trim( sanitize_text_field( wp_unslash( $_POST['dkb_authorization_code'] ) ) ) : '';
-		$msg  = 'saved';
-		if ( '' !== $code ) {
+		if ( '' !== $code && 'error' !== $msg ) {
 			try {
 				$this->plugin->api()->client()->exchange_code( $code );
 				$msg = 'connected';
@@ -210,6 +223,50 @@ class Admin {
 			}
 		}
 		wp_safe_redirect( add_query_arg( array( 'page' => self::SLUG . '-settings', 'tab' => $tab, 'dkb_msg' => $msg ), admin_url( 'admin.php' ) ) );
+		exit;
+	}
+
+	/**
+	 * Key pair actions: generate, import, download public key, delete.
+	 */
+	public function keys() {
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			wp_die( esc_html__( 'دسترسی ندارید.', 'dk-bridge' ) );
+		}
+		check_admin_referer( 'dkb_keys' );
+		$do  = isset( $_REQUEST['do'] ) ? sanitize_key( wp_unslash( $_REQUEST['do'] ) ) : '';
+		$msg = 'keys_saved';
+		try {
+			switch ( $do ) {
+				case 'generate':
+					\DKBridge\Security\KeyPair::create();
+					$this->plugin->logger()->info( 'auth', 'جفت‌کلید RSA جدید ساخته شد.' );
+					break;
+				case 'import':
+					$pem = isset( $_POST['dkb_private_key'] ) ? sanitize_textarea_field( wp_unslash( $_POST['dkb_private_key'] ) ) : '';
+					\DKBridge\Security\KeyPair::store( $pem );
+					$this->plugin->logger()->info( 'auth', 'کلید خصوصی وارد شد.' );
+					break;
+				case 'delete':
+					\DKBridge\Security\KeyPair::delete();
+					$msg = 'keys_deleted';
+					break;
+				case 'download':
+					$info = \DKBridge\Security\KeyPair::stored();
+					if ( $info ) {
+						nocache_headers();
+						header( 'Content-Type: application/x-pem-file' );
+						header( 'Content-Disposition: attachment; filename=digikala-public-key.pem' );
+						echo $info['public']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+						exit;
+					}
+					break;
+			}
+		} catch ( \Exception $e ) {
+			set_transient( 'dkb_admin_error', $e->getMessage(), 60 );
+			$msg = 'error';
+		}
+		wp_safe_redirect( admin_url( 'admin.php?page=' . self::SLUG . '-settings&tab=connection&dkb_msg=' . $msg ) );
 		exit;
 	}
 
@@ -271,6 +328,8 @@ class Admin {
 			'disconnected' => array( 'success', __( 'اتصال قطع و توکن‌ها حذف شدند.', 'dk-bridge' ) ),
 			'error'        => array( 'error', (string) get_transient( 'dkb_admin_error' ) ),
 			'bulk'         => array( 'success', __( 'عملیات گروهی انجام شد.', 'dk-bridge' ) ),
+			'keys_saved'   => array( 'success', __( 'کلید ذخیره شد. کلید عمومی را در پنل فروشندگان ثبت کنید.', 'dk-bridge' ) ),
+			'keys_deleted' => array( 'success', __( 'جفت‌کلید حذف شد.', 'dk-bridge' ) ),
 		);
 		if ( isset( $map[ $msg ] ) ) {
 			printf( '<div class="notice notice-%s is-dismissible"><p>%s</p></div>', esc_attr( $map[ $msg ][0] ), esc_html( $map[ $msg ][1] ) );

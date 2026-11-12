@@ -131,6 +131,7 @@ Open API رسمی دیجی‌کالا تمام مراحل درج کالا را �
 - طرح امنیتی: `bearerAuth` (JWT). هدر: `Authorization: Bearer <access_token>`.
 - هدر `Content-Type: application/json` **روی GET هم لازم است** (پارامتر هدر اجباری در Swagger).
 - **حالت ۱ — Self-Token (پیشنهادی):** فروشنده از پنل فروشندگان توکن می‌سازد. همراه آن هدر `User-Agent: DigikalaTrustedBot/SelfToken/{seller_code}` ارسال می‌شود (طبق SDKهای عمومی).
+- **کلید RSA برای «ثبت توکن اختصاصی»:** پنل فروشندگان یک کلید عمومی RSA ۴۰۹۶ بیتی می‌خواهد و داده‌های حساس، مثل کد اعتبارسنجی یا مجوز، را با آن رمز می‌کند. افزونه جفت‌کلید را می‌سازد (`Security\KeyPair`)، کلید عمومی را برای کپی نمایش می‌دهد و کلید خصوصی را رمزشده نگه می‌دارد. مقدارهای رمزشده با RSA-OAEP-SHA256 رمزگشایی می‌شوند و اگر نشد، OAEP-SHA1 و PKCS#1 v1.5 امتحان می‌شوند. ورودی می‌تواند Base64 یا Base64url باشد، با یک یا چند بلوک. نتیجه با `POST /auth/token` به توکن تبدیل می‌شود.
 - **حالت ۲ — اپلیکیشن ثبت‌شده (OAuth):** بعد از تأیید فروشنده، `authorization_code` به اپ برمی‌گردد و با `POST /auth/token` به `access_token` + `refresh_token` تبدیل می‌شود. تمدید: `POST /auth/refresh-token` با `access_token` (منقضی) و `refresh_token`. پاسخ شامل `access_token_expires_at.date` با منطقهٔ زمانی `Asia/Tehran` است. **refresh_token جدید همیشه باید جایگزین قبلی شود.**
 - لغو: `POST /auth/revoke`. Scopeها: `GET /auth/scopes`.
 - Scopeهای مورد نیاز افزونه: `product`، `variant`، `order`، `self_settings` (برای batch inquiry و webhook)، و به‌صورت اختیاری `promotion` و `inventory`.
