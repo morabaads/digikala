@@ -238,6 +238,18 @@ class ApiClientTest extends TestCase {
 		$this->assertSame( 'SECRET-TOKEN-VALUE', $store->access_token() );
 	}
 
+	public function test_seller_code_from_jwt_claims() {
+		$jwt = 'h.' . rtrim( strtr( base64_encode( json_encode( array( 'iat' => 1, 'data' => array( 'seller_id' => 123456 ) ) ) ), '+/', '-_' ), '=' ) . '.s';
+		$this->assertSame( '123456', TokenStore::seller_code_from_token( $jwt ) );
+		$this->assertSame( '', TokenStore::seller_code_from_token( 'not-a-jwt' ) );
+	}
+
+	public function test_self_token_user_agent() {
+		$this->respond( 200, array( 'status' => 'ok', 'data' => array() ) );
+		$this->client( array( 'auth_mode' => 'self_token', 'seller_code' => '987' ) )->get( '/' );
+		$this->assertSame( 'DigikalaTrustedBot/SelfToken/987', $this->requests[0]['args']['headers']['User-Agent'] );
+	}
+
 	public function test_parse_expiry_in_tehran_time() {
 		$ts = TokenStore::parse_expiry( array( 'date' => '2025-02-07 00:00:00.000000', 'timezone' => 'Asia/Tehran' ) );
 		$this->assertSame( gmmktime( 20, 30, 0, 2, 6, 2025 ), $ts );

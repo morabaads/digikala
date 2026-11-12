@@ -149,4 +149,47 @@ class TokenStore {
 		$payload = json_decode( base64_decode( strtr( $parts[1], '-_', '+/' ) ), true );
 		return is_array( $payload ) && isset( $payload['exp'] ) ? (int) $payload['exp'] : 0;
 	}
+
+	/**
+	 * Decoded JWT payload (claims), or empty array.
+	 *
+	 * @param string $jwt Token.
+	 * @return array
+	 */
+	public static function jwt_claims( $jwt ) {
+		$parts = explode( '.', (string) $jwt );
+		if ( count( $parts ) < 2 ) {
+			return array();
+		}
+		$b64     = strtr( $parts[1], '-_', '+/' );
+		$payload = json_decode( (string) base64_decode( str_pad( $b64, (int) ( ceil( strlen( $b64 ) / 4 ) * 4 ), '=' ) ), true );
+		return is_array( $payload ) ? $payload : array();
+	}
+
+	/**
+	 * Try to find the seller code inside the token claims.
+	 *
+	 * @param string $jwt Token.
+	 * @return string Empty when not found.
+	 */
+	public static function seller_code_from_token( $jwt ) {
+		$claims = self::jwt_claims( $jwt );
+		$search = static function ( $data ) use ( &$search ) {
+			foreach ( array( 'seller_code', 'sellerCode', 'seller_id', 'sellerId', 'marketplace_seller_id', 'marketplaceSellerId', 'supplier_code', 'seller' ) as $key ) {
+				if ( isset( $data[ $key ] ) && is_scalar( $data[ $key ] ) && '' !== trim( (string) $data[ $key ] ) ) {
+					return trim( (string) $data[ $key ] );
+				}
+			}
+			foreach ( $data as $value ) {
+				if ( is_array( $value ) ) {
+					$found = $search( $value );
+					if ( '' !== $found ) {
+						return $found;
+					}
+				}
+			}
+			return '';
+		};
+		return $search( $claims );
+	}
 }

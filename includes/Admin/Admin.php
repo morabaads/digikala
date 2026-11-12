@@ -222,6 +222,12 @@ class Admin {
 			try {
 				$this->plugin->api()->client()->exchange_code( $code );
 				$msg = 'connected';
+				if ( '' === trim( (string) $this->plugin->settings()->get( 'seller_code' ) ) ) {
+					$found = TokenStore::seller_code_from_token( ( new TokenStore() )->access_token() );
+					if ( '' !== $found ) {
+						$this->plugin->settings()->update( array( 'seller_code' => $found ) );
+					}
+				}
 			} catch ( \Exception $e ) {
 				set_transient( 'dkb_admin_error', $e->getMessage(), 60 );
 				$msg = 'error';

@@ -136,6 +136,16 @@ class RestController {
 	 * @return array
 	 */
 	private function connection_test() {
+		$settings = $this->plugin->settings();
+		if ( '' === trim( (string) $settings->get( 'seller_code' ) ) ) {
+			$found = \DKBridge\Api\TokenStore::seller_code_from_token( $this->plugin->tokens()->access_token() );
+			if ( '' !== $found ) {
+				$settings->update( array( 'seller_code' => $found ) );
+				$this->plugin->logger()->info( 'auth', 'کد فروشنده از توکن خوانده شد: ' . $found );
+			} elseif ( 'self_token' === $settings->get( 'auth_mode' ) ) {
+				throw new \RuntimeException( __( 'کد فروشنده وارد نشده است. دیجی‌کالا برای توکن اختصاصی هدر DigikalaTrustedBot/SelfToken/{کد فروشنده} می‌خواهد. کد فروشنده را از پنل فروشندگان (کنار نام فروشگاه یا منوی پروفایل) بردارید و در تنظیمات ← اتصال وارد کنید.', 'dk-bridge' ) );
+			}
+		}
 		$api    = $this->plugin->api();
 		$health = $api->health();
 		$out    = array(
